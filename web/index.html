@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Escriba — Timestamped Transcription</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#f5eede; --paper-card:#fdfaf2;
+    --ink:#2b2520; --ink-soft:#6c6055; --muted:#9b8d7b;
+    --clay:#bb5a36; --clay-deep:#9c4527; --clay-wash:#bb5a360f;
+    --sage:#6c7a4f; --sage-wash:#6c7a4f12;
+    --line:#e6d9c2; --danger:#a4432c;
+    --radius:16px; --radius-sm:10px;
+    --shadow:0 1px 2px #2b252008, 0 8px 30px #2b252012, 0 2px 8px #2b25200a;
+    --ease:cubic-bezier(.22,.61,.36,1);
+    --ui:"Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
+    --display:"Fraunces", Georgia, serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--ui);color:var(--ink);background:var(--paper);line-height:1.55;
+    min-height:100vh;padding:48px 20px 64px;display:flex;flex-direction:column;align-items:center;
+    background-image:radial-gradient(120% 80% at 50% -10%, #fffdf7 0%, transparent 55%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E")}
+  .masthead{text-align:center;margin-bottom:30px;opacity:0;animation:rise .7s var(--ease) .05s forwards}
+  .wordmark{display:inline-flex;align-items:center;gap:12px}
+  .wordmark svg{width:30px;height:30px;color:var(--clay)}
+  .wordmark h1{font-family:var(--display);font-weight:600;font-size:38px;letter-spacing:-.01em;line-height:1}
+  .tagline{margin-top:10px;color:var(--ink-soft);font-size:15.5px;max-width:430px}
+  .card{width:100%;max-width:620px;background:var(--paper-card);border:1px solid var(--line);
+    border-radius:var(--radius);box-shadow:var(--shadow);padding:30px;opacity:0;animation:rise .7s var(--ease) .18s forwards}
+  @media(max-width:560px){.card{padding:22px}}
+  .panel{display:none}
+  .card[data-state="consent"] #panel-consent,
+  .card[data-state="idle"] #panel-upload,
+  .card[data-state="ready"] #panel-upload,
+  .card[data-state="working"] #panel-working,
+  .card[data-state="done"] #panel-done,
+  .card[data-state="error"] #panel-error{display:block}
+  .step-eyebrow{font-size:12px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+    color:var(--clay);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .step-eyebrow::after{content:"";flex:1;height:1px;background:var(--line)}
+
+  /* ---- consent ---- */
+  #panel-consent h2{font-family:var(--display);font-weight:600;font-size:22px;margin-bottom:10px}
+  #panel-consent p{color:var(--ink-soft);font-size:14.5px;margin-bottom:14px}
+  .consent-box{background:#fbf6ea;border:1px solid var(--line);border-radius:var(--radius-sm);padding:16px 18px;margin-bottom:18px}
+  .consent-box ul{list-style:none;font-size:14px}
+  .consent-box li{padding:4px 0 4px 24px;position:relative}
+  .consent-box li::before{position:absolute;left:0;top:3px;font-weight:700}
+  .consent-box li.yes::before{content:"✓";color:var(--sage)}
+  .consent-box li.no::before{content:"✕";color:var(--muted)}
+  .consent-actions{display:flex;gap:10px;flex-wrap:wrap}
+
+  .drop{border:1.5px dashed #d8c7a8;border-radius:var(--radius);background:#fbf6ea;padding:38px 24px;
+    text-align:center;cursor:pointer;transition:border-color .2s var(--ease),background .2s var(--ease),transform .2s var(--ease)}
+  .drop:hover{border-color:var(--clay);background:#fbf3e4}
+  .drop:focus-visible{outline:3px solid var(--clay);outline-offset:3px}
+  .drop.dragover{border-color:var(--clay);background:var(--clay-wash);transform:scale(1.01)}
+  .drop .wave{width:54px;height:54px;margin:0 auto 14px;color:var(--clay);opacity:.9}
+  .drop .lead{font-size:17px;font-weight:600}
+  .drop .lead .browse{color:var(--clay);text-decoration:underline;text-underline-offset:3px}
+  .drop .hint{font-size:13.5px;color:var(--muted);margin-top:7px}
+  .field-error{display:none;margin-top:12px;font-size:14px;color:var(--danger);background:#a4432c0f;
+    border:1px solid #a4432c2e;border-radius:var(--radius-sm);padding:10px 14px;text-align:left}
+  .field-error.show{display:block;animation:rise .3s var(--ease)}
+  .file-chip{display:flex;align-items:center;gap:14px;background:#fbf6ea;border:1px solid var(--line);
+    border-radius:var(--radius-sm);padding:14px 16px;margin-top:18px}
+  .file-chip .fic{width:38px;height:38px;flex:none;display:grid;place-items:center;background:var(--clay-wash);border-radius:9px;color:var(--clay)}
+  .file-chip .meta{flex:1;min-width:0}
+  .file-chip .fname{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .file-chip .fsub{font-size:13px;color:var(--ink-soft);margin-top:1px}
+  .file-chip .remove{flex:none;border:none;background:transparent;cursor:pointer;color:var(--muted);
+    width:34px;height:34px;border-radius:8px;display:grid;place-items:center;transition:background .15s,color .15s}
+  .file-chip .remove:hover{background:#a4432c14;color:var(--danger)}
+  .file-chip .remove:focus-visible{outline:2px solid var(--clay);outline-offset:2px}
+  .long-note{display:none;margin-top:12px;font-size:13.5px;color:var(--ink-soft);background:var(--sage-wash);
+    border:1px solid #6c7a4f24;border-radius:var(--radius-sm);padding:10px 14px}
+  .long-note.show{display:block}
+  .field{margin-top:24px}
+  .field-label{font-size:14px;font-weight:600;display:flex;align-items:center;gap:7px;margin-bottom:10px}
+  .help{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--muted);color:var(--muted);
+    font-size:11px;font-weight:700;display:grid;place-items:center;cursor:help;position:relative}
+  .help:hover .tip,.help:focus-visible .tip{opacity:1;transform:translateY(0);visibility:visible}
+  .help:focus-visible{outline:2px solid var(--clay);outline-offset:2px}
+  .tip{position:absolute;bottom:140%;left:50%;transform:translate(-50%,4px);width:250px;background:var(--ink);
+    color:#f5eede;font-size:12.5px;font-weight:400;line-height:1.5;padding:10px 12px;border-radius:9px;text-align:left;
+    opacity:0;visibility:hidden;transition:.18s var(--ease);z-index:5;pointer-events:none}
+  .tip::after{content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:var(--ink)}
+  .select-wrap{position:relative}
+  select.lang{appearance:none;-webkit-appearance:none;width:100%;font-family:var(--ui);font-size:15px;font-weight:500;
+    color:var(--ink);background:#fff;border:1.5px solid var(--line);border-radius:var(--radius-sm);padding:13px 44px 13px 15px;cursor:pointer;transition:border-color .15s}
+  select.lang:hover{border-color:#d8c7a8}
+  select.lang:focus-visible{outline:2px solid var(--clay);outline-offset:2px;border-color:var(--clay)}
+  .select-wrap::after{content:"";position:absolute;right:16px;top:50%;width:9px;height:9px;border-right:2px solid var(--muted);
+    border-bottom:2px solid var(--muted);transform:translateY(-65%) rotate(45deg);pointer-events:none}
+  .segmented{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media(max-width:480px){.segmented{grid-template-columns:1fr}}
+  .seg{border:1.5px solid var(--line);background:#fff;border-radius:var(--radius-sm);padding:13px 15px;cursor:pointer;transition:.18s var(--ease);position:relative}
+  .seg:hover{border-color:#d8c7a8}
+  .seg:focus-within{outline:2px solid var(--clay);outline-offset:2px}
+  .seg input{position:absolute;opacity:0}
+  .seg .seg-title{font-weight:600;font-size:14.5px;display:flex;align-items:center;gap:8px}
+  .seg .seg-sub{font-size:12.5px;color:var(--ink-soft);margin-top:3px}
+  .seg .dot{width:15px;height:15px;border-radius:50%;border:2px solid var(--muted);flex:none;transition:.15s}
+  .seg[data-on="true"]{border-color:var(--clay);background:var(--clay-wash)}
+  .seg[data-on="true"] .dot{border-color:var(--clay);background:var(--clay);box-shadow:inset 0 0 0 3px var(--paper-card)}
+  .btn{font-family:var(--ui);font-weight:600;font-size:15.5px;cursor:pointer;border-radius:var(--radius-sm);border:1px solid transparent;
+    transition:.18s var(--ease);display:inline-flex;align-items:center;justify-content:center;gap:9px}
+  .btn:focus-visible{outline:3px solid var(--clay);outline-offset:2px}
+  .btn-primary{background:var(--clay);color:#fff;width:100%;padding:16px;margin-top:26px;font-size:16.5px;box-shadow:0 2px 0 var(--clay-deep),0 6px 16px #bb5a3633}
+  .btn-primary:hover:not(:disabled){background:var(--clay-deep);transform:translateY(-1px)}
+  .btn-primary:active:not(:disabled){transform:translateY(1px);box-shadow:0 1px 0 var(--clay-deep)}
+  .btn-primary:disabled{background:#dcd1bd;color:#fff;cursor:not-allowed;box-shadow:none;opacity:.85}
+  .btn-ghost{background:#fff;border-color:var(--line);color:var(--ink);padding:13px 18px}
+  .btn-ghost:hover{border-color:var(--clay);color:var(--clay-deep)}
+  .btn-text{background:transparent;color:var(--ink-soft);padding:11px 16px}
+  .btn-text:hover{color:var(--clay-deep)}
+  .btn-primary.inline{width:auto;margin-top:0}
+
+  #panel-working .work-top{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+  .work-icon{width:30px;height:30px;flex:none;color:var(--clay)}
+  .work-icon .ring{transform-origin:center;animation:spin 1.4s linear infinite}
+  .stage{font-family:var(--display);font-weight:500;font-size:19px}
+  .stage-sub{color:var(--ink-soft);font-size:13.5px;margin-top:1px}
+  .bar{height:9px;background:#ece0c9;border-radius:99px;overflow:hidden;margin-bottom:6px}
+  .bar>i{display:block;height:100%;width:0%;border-radius:99px;background:linear-gradient(90deg,var(--clay),#d4794f);transition:width .5s var(--ease)}
+  .pct{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;text-align:right;margin-bottom:16px}
+  /* live transcript stream */
+  .live-label{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px}
+  .live-dot{width:8px;height:8px;border-radius:50%;background:var(--clay);animation:pulse 1.2s infinite}
+  .live{border:1px solid var(--line);border-radius:var(--radius-sm);background:#fbf6ea;height:210px;overflow-y:auto;padding:6px;scroll-behavior:smooth}
+  .live .placeholder{color:var(--muted);font-size:14px;text-align:center;padding:24px 12px}
+  .line{display:flex;gap:14px;padding:9px 12px;border-radius:8px}
+  .line:hover{background:#fff}
+  .line.fresh{animation:rise .35s var(--ease)}
+  .ts{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;color:var(--clay);background:var(--clay-wash);
+    padding:2px 7px;border-radius:6px;height:fit-content;flex:none;font-weight:600;letter-spacing:-.02em}
+  .line p{font-size:15px}
+  .work-foot{display:flex;justify-content:space-between;align-items:center;margin-top:16px}
+  .privacy{font-size:12.5px;color:var(--sage);display:inline-flex;align-items:center;gap:6px}
+  .privacy svg{width:14px;height:14px}
+
+  #panel-done .done-head{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+  .check{width:34px;height:34px;flex:none;border-radius:50%;background:var(--sage);display:grid;place-items:center;color:#fff}
+  #panel-done h2{font-family:var(--display);font-weight:600;font-size:23px}
+  #panel-done .done-sub{color:var(--ink-soft);font-size:14px;margin:0 0 20px 46px}
+  @media(max-width:480px){#panel-done .done-sub{margin-left:0}}
+  .transcript{border:1px solid var(--line);border-radius:var(--radius-sm);background:#fbf6ea;max-height:260px;overflow-y:auto;padding:6px}
+  .exports-label{font-size:13px;color:var(--ink-soft);margin:22px 0 11px}
+  .exports{display:flex;flex-wrap:wrap;gap:9px}
+  .chip-btn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:9px 14px;font-size:13.5px;font-weight:600;
+    cursor:pointer;color:var(--ink);display:inline-flex;align-items:center;gap:8px;transition:.15s var(--ease)}
+  .chip-btn:hover{border-color:var(--clay);color:var(--clay-deep);background:var(--clay-wash)}
+  .chip-btn:focus-visible{outline:2px solid var(--clay);outline-offset:2px}
+  .chip-btn .ext{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--muted)}
+  .chip-btn.copied{border-color:var(--sage);color:var(--sage);background:var(--sage-wash)}
+  .done-foot{display:flex;justify-content:space-between;align-items:center;margin-top:24px;padding-top:20px;border-top:1px solid var(--line);flex-wrap:wrap;gap:10px}
+  .saved-note{font-size:13px;color:var(--muted)}
+  .err-icon{width:48px;height:48px;margin:6px auto 16px;color:var(--danger)}
+  #panel-error{text-align:center;padding:8px 4px}
+  #panel-error h2{font-family:var(--display);font-weight:600;font-size:21px;margin-bottom:6px}
+  #panel-error p{color:var(--ink-soft);font-size:15px;margin-bottom:22px;max-width:420px;margin-inline:auto}
+  .foot{margin-top:22px;font-size:12.5px;color:var(--muted);text-align:center;opacity:0;animation:rise .7s var(--ease) .4s forwards;line-height:1.8}
+  .foot a{color:var(--ink-soft)}
+  .foot .stat{color:var(--clay-deep);font-weight:600}
+  /* extras: past transcripts + shared folder */
+  .extras{margin-top:22px;border-top:1px solid var(--line);padding-top:8px}
+  .disclose{border-bottom:1px solid var(--line)}
+  .disclose:last-child{border-bottom:none}
+  .disclose summary{list-style:none;cursor:pointer;padding:13px 2px;font-size:14px;font-weight:600;
+    display:flex;align-items:center;gap:8px;color:var(--ink)}
+  .disclose summary::-webkit-details-marker{display:none}
+  .disclose summary::before{content:"›";font-size:18px;color:var(--muted);transition:transform .2s var(--ease)}
+  .disclose[open] summary::before{transform:rotate(90deg)}
+  .disclose summary:hover{color:var(--clay-deep)}
+  .disclose .count{margin-left:auto;font-weight:500;font-size:12.5px;color:var(--muted)}
+  .hist-list{padding:2px 2px 14px}
+  .hist-empty{font-size:13.5px;color:var(--muted);padding:6px 2px 10px}
+  .hist-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);
+    border-radius:var(--radius-sm);background:#fbf6ea;margin-bottom:8px}
+  .hist-item .hi-meta{flex:1;min-width:0}
+  .hist-item .hi-name{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hist-item .hi-sub{font-size:12px;color:var(--ink-soft);margin-top:1px}
+  .hist-item .hi-dl{display:flex;gap:5px;flex:none}
+  .hi-dl a{font-family:ui-monospace,Menlo,monospace;font-size:11px;font-weight:600;color:var(--clay-deep);
+    text-decoration:none;border:1px solid var(--line);border-radius:6px;padding:3px 7px;background:#fff;cursor:pointer}
+  .hi-dl a:hover{border-color:var(--clay);background:var(--clay-wash)}
+  .folder-body{padding:2px 2px 16px}
+  .folder-body p{font-size:13.5px;color:var(--ink-soft);margin-bottom:12px}
+  .folder-row{display:flex;gap:8px}
+  .folder-row input{flex:1;min-width:0;font-family:var(--ui);font-size:13.5px;color:var(--ink);background:#fff;
+    border:1.5px solid var(--line);border-radius:var(--radius-sm);padding:11px 13px}
+  .folder-row input:focus-visible{outline:2px solid var(--clay);outline-offset:2px;border-color:var(--clay)}
+  .folder-row .btn{padding:11px 16px;flex:none}
+  .folder-msg{font-size:13px;margin-top:10px}
+  .folder-msg.ok{color:var(--sage)}
+  .folder-msg.err{color:var(--danger)}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  @media(prefers-reduced-motion:reduce){*{animation-duration:.001s!important;transition-duration:.05s!important}}
+</style>
+</head>
+<body>
+  <header class="masthead">
+    <div class="wordmark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M20 4C13 5 9 9 7 14l-3 6 6-3c5-2 9-6 10-13Z"/><path d="M8.5 15.5 4 20"/><path d="M14 8a6 6 0 0 0-4 4"/>
+      </svg>
+      <h1>Escriba</h1>
+    </div>
+    <p class="tagline">Turn a sermon recording into a clean transcript — with the timestamps the free tools leave out.</p>
+  </header>
+
+  <main class="card" id="card" data-state="idle" aria-live="polite">
+
+    <!-- ===== CONSENT (first run) ===== -->
+    <section class="panel" id="panel-consent">
+      <p class="step-eyebrow">Before we start</p>
+      <h2>A quick note on usage stats</h2>
+      <p>Escriba is free and runs on your computer. To understand how it's used and keep improving it, it can share anonymous usage stats. Your choice — it works fully either way.</p>
+      <div class="consent-box">
+        <ul>
+          <li class="yes">Shares: an anonymous ID, how many transcriptions you run, and total minutes</li>
+          <li class="no">Never shares: your audio, your transcripts, file names, or anything personal</li>
+        </ul>
+      </div>
+      <div class="consent-actions">
+        <button class="btn btn-primary inline" id="consentAgree">Agree &amp; continue</button>
+        <button class="btn btn-ghost" id="consentDecline">Use without sharing</button>
+      </div>
+    </section>
+
+    <!-- ===== UPLOAD / READY ===== -->
+    <section class="panel" id="panel-upload">
+      <p class="step-eyebrow">Step 1 — Choose your audio</p>
+      <div class="drop" id="drop" tabindex="0" role="button" aria-label="Drop an audio file here, or press Enter to browse">
+        <svg class="wave" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3 12h2M7 8v8M11 4v16M15 7v10M19 10v4M21 12h0"/></svg>
+        <div class="lead">Drop your audio here, or <span class="browse">browse</span></div>
+        <div class="hint">MP3, WAV, M4A, MP4, AAC, FLAC or OGG &nbsp;·&nbsp; up to 4 hours</div>
+      </div>
+      <input type="file" id="file" class="sr-only" accept=".mp3,.wav,.m4a,.mp4,.aac,.flac,.ogg,audio/*,video/mp4" />
+      <div class="field-error" id="fileError" role="alert"></div>
+      <div id="fileWrap"></div>
+      <div class="long-note" id="longNote"></div>
+      <div class="field" id="langField" style="display:none">
+        <div class="field-label">What language is being spoken?
+          <span class="help" tabindex="0" aria-label="Help about language">?
+            <span class="tip">Pick the language you want to keep. If the recording also has a live interpreter in another language, this picks which one to transcribe — for best results, record that language on its own track if you can.</span>
+          </span>
+        </div>
+        <div class="select-wrap">
+          <select class="lang" id="language" aria-label="Audio language">
+            <option value="auto">Detect automatically</option>
+            <option value="es">Spanish · Español</option>
+            <option value="en">English</option>
+          </select>
+        </div>
+      </div>
+      <div class="field" id="modeField" style="display:none">
+        <div class="field-label">How should it run?
+          <span class="help" tabindex="0" aria-label="Help about run modes">?
+            <span class="tip">Standard works on any computer and is what most people use. Fast is only faster if your computer has an NVIDIA graphics card — most laptops don't, and that's fine.</span>
+          </span>
+        </div>
+        <div class="segmented" role="radiogroup" aria-label="Run mode">
+          <label class="seg" data-on="true"><input type="radio" name="mode" value="standard" checked />
+            <div class="seg-title"><span class="dot"></span>Standard</div><div class="seg-sub">Works on any computer · a little slower</div></label>
+          <label class="seg" data-on="false"><input type="radio" name="mode" value="fast" />
+            <div class="seg-title"><span class="dot"></span>Fast</div><div class="seg-sub">Only if you have an NVIDIA card</div></label>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="startBtn" disabled>Transcribe</button>
+
+      <!-- past transcripts + shared folder (never lose work / share with the team) -->
+      <div class="extras" id="extras">
+        <details class="disclose" id="historyBox">
+          <summary>Past transcripts <span class="count" id="histCount"></span></summary>
+          <div id="histList" class="hist-list"><div class="hist-empty">Your finished transcripts will appear here — saved automatically so you never lose them.</div></div>
+        </details>
+        <details class="disclose">
+          <summary>Shared folder <span class="count" id="folderState"></span></summary>
+          <div class="folder-body">
+            <p>Optionally save every transcript into a folder too. Point this at your church's <strong>Google Drive or Dropbox sync folder</strong> and the whole team gets each transcript automatically — no accounts needed.</p>
+            <div class="folder-row">
+              <input type="text" id="folderInput" placeholder="/Users/you/Library/CloudStorage/GoogleDrive-…/Transcripts" />
+              <button class="btn btn-ghost" id="folderSave">Save</button>
+            </div>
+            <div class="folder-msg" id="folderMsg"></div>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- ===== WORKING (live) ===== -->
+    <section class="panel" id="panel-working">
+      <div class="work-top">
+        <svg class="work-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <circle class="ring" cx="12" cy="12" r="9" stroke-dasharray="42 16" stroke-linecap="round"/></svg>
+        <div><div class="stage" id="stageText" role="status" aria-live="polite">Preparing your audio…</div>
+          <div class="stage-sub" id="stageSub">Standard mode runs on your computer — give it a little time.</div></div>
+      </div>
+      <div class="bar"><i id="barFill"></i></div>
+      <div class="pct" id="pctText">0%</div>
+      <div class="live-label"><span class="live-dot"></span> Live — appearing as it's transcribed</div>
+      <div class="live" id="live"><div class="placeholder">Watching for the first words… if it looks wrong (e.g. a bilingual tape), you can stop right away.</div></div>
+      <div class="work-foot">
+        <span class="privacy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 4 6v6c0 4 3 7 8 9 5-2 8-5 8-9V6l-8-3Z"/></svg> Audio stays on this computer</span>
+        <button class="btn btn-text" id="cancelBtn">Stop</button>
+      </div>
+    </section>
+
+    <!-- ===== DONE ===== -->
+    <section class="panel" id="panel-done">
+      <div class="done-head"><span class="check"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12 5 5L20 6"/></svg></span>
+        <h2>Your transcript is ready</h2></div>
+      <p class="done-sub" id="doneSub"></p>
+      <div class="transcript" id="transcript" tabindex="0" aria-label="Transcript preview"></div>
+      <p class="exports-label">Download — the timestamped formats are what you came for:</p>
+      <div class="exports">
+        <button class="chip-btn" data-fmt="txt">Plain text <span class="ext">.txt</span></button>
+        <button class="chip-btn" data-fmt="srt">Subtitles <span class="ext">.srt</span></button>
+        <button class="chip-btn" data-fmt="vtt">Web subtitles <span class="ext">.vtt</span></button>
+        <button class="chip-btn" data-fmt="json">Data (word-level) <span class="ext">.json</span></button>
+        <button class="chip-btn" id="copyBtn">Copy text</button>
+      </div>
+      <div class="done-foot"><span class="saved-note" id="savedNote">Saved automatically · audio deleted · transcript kept for you</span>
+        <button class="btn btn-ghost" id="againBtn">Transcribe another</button></div>
+    </section>
+
+    <!-- ===== HISTORY + SETTINGS (link from done/idle) ===== -->
+
+    <!-- ===== ERROR ===== -->
+    <section class="panel" id="panel-error">
+      <svg class="err-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h0"/></svg>
+      <h2>That didn't go through</h2>
+      <p id="errMsg">Something went wrong.</p>
+      <button class="btn btn-ghost" id="errBack">Back</button>
+    </section>
+  </main>
+
+  <p class="foot">
+    Runs on your machine — no account, transcription is free. &nbsp;·&nbsp; <a href="#" id="helpLink">Setup video</a>
+    <span id="statLine"></span>
+  </p>
+
+<script>
+const ACCEPTED=["mp3","wav","m4a","mp4","aac","flac","ogg"];
+const card=document.getElementById('card'),drop=document.getElementById('drop'),fileInput=document.getElementById('file'),
+  fileError=document.getElementById('fileError'),fileWrap=document.getElementById('fileWrap'),longNote=document.getElementById('longNote'),
+  langField=document.getElementById('langField'),modeField=document.getElementById('modeField'),startBtn=document.getElementById('startBtn'),
+  live=document.getElementById('live'),statLine=document.getElementById('statLine');
+let selected=null,SEGMENTS=[],LANG="",jobId=null,es=null,finished=false,liveCount=0,savedToOutput=null;
+
+const clock=s=>`${String(Math.floor(s/60)).padStart(2,'0')}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+function stamp(s,sep){const ms=Math.round((s%1)*1000),t=Math.floor(s);
+  return `${String(Math.floor(t/3600)).padStart(2,'0')}:${String(Math.floor(t%3600/60)).padStart(2,'0')}:${String(t%60).padStart(2,'0')}${sep}${String(ms).padStart(3,'0')}`;}
+const escapeHtml=t=>t.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+function wordsFor(seg){if(seg.words&&seg.words.length)return seg.words;
+  const ws=seg.text.trim().split(/\s+/),tot=ws.reduce((a,w)=>a+w.length,0)||1;let t=seg.start,o=[];
+  for(const w of ws){const d=(seg.end-seg.start)*(w.length/tot);o.push({word:w,start:+t.toFixed(2),end:+(t+d).toFixed(2)});t+=d;}return o;}
+
+/* ---- consent + stats on load ---- */
+async function boot(){
+  try{
+    const cfg=await (await fetch('/api/config')).json();
+    renderStats(cfg);
+    renderFolder(cfg.output_folder||"");
+    if(cfg.consent===null){card.dataset.state='consent';}
+  }catch(e){/* offline: just proceed */}
+  loadHistory();
+}
+async function loadHistory(){
+  try{
+    const d=await (await fetch('/api/history')).json();
+    const items=d.items||[];
+    document.getElementById('histCount').textContent=items.length?items.length:'';
+    const list=document.getElementById('histList');
+    if(!items.length){list.innerHTML='<div class="hist-empty">Your finished transcripts will appear here — saved automatically so you never lose them.</div>';return;}
+    list.innerHTML=items.map(it=>{
+      const when=new Date(it.created_at).toLocaleDateString(undefined,{month:'short',day:'numeric'});
+      const lang={es:'Spanish',en:'English'}[it.language]||it.language||'';
+      return `<div class="hist-item"><div class="hi-meta"><div class="hi-name">${escapeHtml(it.name)}</div>
+        <div class="hi-sub">${when} · ${it.segments} segments · ${lang}</div></div>
+        <div class="hi-dl">
+          <a href="/api/history/${it.id}/txt">txt</a>
+          <a href="/api/history/${it.id}/srt">srt</a>
+          <a href="/api/history/${it.id}/vtt">vtt</a>
+          <a href="/api/history/${it.id}/json">json</a>
+        </div></div>`;
+    }).join('');
+  }catch(e){}
+}
+function renderFolder(path){
+  const state=document.getElementById('folderState');
+  document.getElementById('folderInput').value=path||"";
+  state.textContent=path?'on':'off';
+}
+document.getElementById('folderSave').onclick=async()=>{
+  const path=document.getElementById('folderInput').value.trim();
+  const msg=document.getElementById('folderMsg');
+  const fd=new FormData();fd.append('path',path);
+  try{
+    const r=await fetch('/api/output-folder',{method:'POST',body:fd});
+    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.detail||'Could not save folder.');}
+    const d=await r.json();renderFolder(d.output_folder);
+    msg.className='folder-msg ok';msg.textContent=d.output_folder?'Saved. Transcripts will also be copied there.':'Cleared.';
+  }catch(err){msg.className='folder-msg err';msg.textContent=err.message;}
+};
+function renderStats(cfg){
+  if(cfg && cfg.transcriptions>0){
+    statLine.innerHTML=` &nbsp;·&nbsp; On this computer: <span class="stat">${cfg.transcriptions}</span> transcripts, <span class="stat">${cfg.minutes}</span> min`;
+  }
+}
+async function sendConsent(agree){
+  const fd=new FormData();fd.append('agree',agree);
+  try{const cfg=await (await fetch('/api/consent',{method:'POST',body:fd})).json();renderStats(cfg);}catch(e){}
+  card.dataset.state='idle';
+}
+document.getElementById('consentAgree').onclick=()=>sendConsent(true);
+document.getElementById('consentDecline').onclick=()=>sendConsent(false);
+
+/* ---- file handling ---- */
+const ext=n=>n.split('.').pop().toLowerCase();
+const setError=m=>{fileError.innerHTML=m;fileError.classList.add('show');};
+const clearError=()=>fileError.classList.remove('show');
+function handleFile(file){clearError();
+  if(!ACCEPTED.includes(ext(file.name))){setError("<strong>That file type isn't supported.</strong> Try MP3, WAV, M4A, or MP4 — those are the most common.");return;}
+  selected={name:file.name,sizeMB:file.size/1048576,minutes:null,file};renderFile();
+  if(file.type.startsWith('audio')||file.type==='video/mp4'){const url=URL.createObjectURL(file),a=new Audio();a.preload='metadata';
+    a.onloadedmetadata=()=>{selected.minutes=a.duration/60;URL.revokeObjectURL(url);renderFile();};a.onerror=()=>{selected.minutes=null;renderFile();};a.src=url;}}
+function renderFile(){if(!selected){fileWrap.innerHTML='';return;}
+  const mins=selected.minutes?`${Math.round(selected.minutes)} min`:'audio file';
+  fileWrap.innerHTML=`<div class="file-chip"><span class="fic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 18V6l10-2v12"/><circle cx="6" cy="18" r="3"/><circle cx="16" cy="16" r="3"/></svg></span>
+    <span class="meta"><span class="fname">${selected.name}</span><span class="fsub">${selected.sizeMB.toFixed(1)} MB · ${mins}</span></span>
+    <button class="remove" id="removeBtn" aria-label="Remove this file"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>`;
+  document.getElementById('removeBtn').onclick=resetSelection;
+  if(selected.minutes&&selected.minutes>90){longNote.textContent=`Heads up — this is a long recording (~${Math.round(selected.minutes)} min). On Standard mode it may take a while. That's normal; you can leave it running.`;longNote.classList.add('show');}
+  else longNote.classList.remove('show');
+  langField.style.display='block';modeField.style.display='block';startBtn.disabled=false;card.dataset.state='ready';}
+function resetSelection(){selected=null;fileInput.value='';fileWrap.innerHTML='';longNote.classList.remove('show');
+  langField.style.display='none';modeField.style.display='none';startBtn.disabled=true;clearError();card.dataset.state='idle';}
+drop.addEventListener('click',()=>fileInput.click());
+drop.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fileInput.click();}});
+fileInput.addEventListener('change',e=>{if(e.target.files[0])handleFile(e.target.files[0]);});
+['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('dragover');}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('dragover');}));
+drop.addEventListener('drop',e=>{if(e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0]);});
+document.querySelectorAll('.seg input').forEach(inp=>inp.addEventListener('change',()=>
+  document.querySelectorAll('.seg').forEach(s=>s.dataset.on=s.querySelector('input').checked?'true':'false')));
+
+/* ---- run + live stream ---- */
+startBtn.addEventListener('click',start);
+async function start(){
+  finished=false;liveCount=0;SEGMENTS=[];
+  live.innerHTML='<div class="placeholder">Watching for the first words… if it looks wrong (e.g. a bilingual tape), you can stop right away.</div>';
+  setProgress(0,'Uploading…','Sending your file to the local app.');
+  card.dataset.state='working';
+  const fd=new FormData();fd.append('file',selected.file);
+  fd.append('mode',document.querySelector('input[name=mode]:checked').value);
+  fd.append('language',document.getElementById('language').value);
+  try{
+    const r=await fetch('/api/transcribe',{method:'POST',body:fd});
+    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.detail||'Upload failed.');}
+    jobId=(await r.json()).job_id;openStream();
+  }catch(err){showError(err.message);}
+}
+function openStream(){
+  es=new EventSource('/api/stream/'+jobId);
+  es.onmessage=ev=>{let m;try{m=JSON.parse(ev.data);}catch(e){return;}handle(m);};
+  es.onerror=()=>{if(!finished){/* localhost stream is reliable; a drop mid-job = real problem */
+    es.close();showError('Lost contact with the app. Is the Escriba window still open?');}};
+}
+function handle(m){
+  if(m.type==='stage'){setProgress(m.progress,m.stage);}
+  else if(m.type==='language'){LANG=m.language;}
+  else if(m.type==='segment'){addLive(m);if(m.progress)setProgress(m.progress);}
+  else if(m.type==='done'){finished=true;es&&es.close();savedToOutput=m.saved_to_output;loadResult();loadHistory();}
+  else if(m.type==='cancelled'){finished=true;es&&es.close();card.dataset.state='ready';}
+  else if(m.type==='error'){finished=true;es&&es.close();showError(m.message||'Transcription failed.');}
+}
+function addLive(seg){
+  if(liveCount===0)live.innerHTML='';
+  liveCount++;SEGMENTS.push({start:seg.start,end:seg.end,text:seg.text,words:[]});
+  const el=document.createElement('div');el.className='line fresh';
+  el.innerHTML=`<span class="ts">${clock(seg.start)}</span><p>${escapeHtml(seg.text)}</p>`;
+  live.appendChild(el);live.scrollTop=live.scrollHeight;
+}
+function setProgress(p,stage,sub){
+  if(p!=null){document.getElementById('barFill').style.width=p+'%';document.getElementById('pctText').textContent=Math.floor(p)+'%';}
+  if(stage)document.getElementById('stageText').textContent=stage;
+  if(sub)document.getElementById('stageSub').textContent=sub;
+}
+async function loadResult(){
+  try{const d=await (await fetch('/api/result/'+jobId)).json();
+    SEGMENTS=d.segments||SEGMENTS;LANG=d.language||LANG;showDone();
+    const cfg=await (await fetch('/api/config')).json();renderStats(cfg);
+  }catch(e){showDone();}  /* fall back to the live segments we already have */
+}
+document.getElementById('cancelBtn').addEventListener('click',async()=>{
+  try{await fetch('/api/cancel/'+jobId,{method:'POST'});}catch(e){}
+  finished=true;es&&es.close();card.dataset.state='ready';});
+
+/* ---- results ---- */
+function showDone(){
+  document.getElementById('transcript').innerHTML=SEGMENTS.map(s=>
+    `<div class="line"><span class="ts">${clock(s.start)}</span><p>${escapeHtml(s.text)}</p></div>`).join('');
+  const total=SEGMENTS.length?clock(SEGMENTS[SEGMENTS.length-1].end):'0:00';
+  const langName={es:'Spanish',en:'English'}[LANG]||'auto-detected';
+  document.getElementById('doneSub').textContent=`${SEGMENTS.length} segments · ${total} of audio · ${langName} · word-level timing`;
+  const note=document.getElementById('savedNote');
+  if(savedToOutput && savedToOutput!=='error') note.textContent='Saved automatically · also copied to your shared folder';
+  else if(savedToOutput==='error') note.textContent='Saved automatically · (couldn\u2019t reach your shared folder this time)';
+  else note.textContent='Saved automatically · audio deleted · transcript kept for you';
+  card.dataset.state='done';
+}
+function build(fmt){
+  if(fmt==='txt')return SEGMENTS.map(s=>`[${clock(s.start)}] ${s.text}`).join('\n');
+  if(fmt==='srt')return SEGMENTS.map((s,i)=>`${i+1}\n${stamp(s.start,',')} --> ${stamp(s.end,',')}\n${s.text}\n`).join('\n');
+  if(fmt==='vtt')return 'WEBVTT\n\n'+SEGMENTS.map(s=>`${stamp(s.start,'.')} --> ${stamp(s.end,'.')}\n${s.text}\n`).join('\n');
+  if(fmt==='json')return JSON.stringify({tool:'Escriba',model:'whisperx',language:LANG,
+    segments:SEGMENTS.map(s=>({start:s.start,end:s.end,text:s.text,words:wordsFor(s)}))},null,2);
+}
+function dl(fmt){const blob=new Blob([build(fmt)],{type:(fmt==='json'?'application/json':'text/plain')+';charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`transcript.${fmt}`;a.click();URL.revokeObjectURL(a.href);}
+document.querySelectorAll('.chip-btn[data-fmt]').forEach(b=>b.addEventListener('click',()=>dl(b.dataset.fmt)));
+const copyBtn=document.getElementById('copyBtn');
+copyBtn.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(build('txt'));
+  const o=copyBtn.textContent;copyBtn.textContent='Copied ✓';copyBtn.classList.add('copied');
+  setTimeout(()=>{copyBtn.textContent=o;copyBtn.classList.remove('copied');},1600);}catch(e){alert('Copy not available here — use the .txt download instead.');}});
+document.getElementById('againBtn').addEventListener('click',resetSelection);
+function showError(msg){document.getElementById('errMsg').textContent=msg;card.dataset.state='error';}
+document.getElementById('errBack').addEventListener('click',()=>card.dataset.state='ready');
+document.getElementById('helpLink').addEventListener('click',e=>{e.preventDefault();alert('In the real app this opens your setup video.');});
+boot();
+</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+name = "escriba-telemetry"
+main = "worker.js"
+compatibility_date = "2026-01-01"
+
+# After running:  npx wrangler d1 create escriba-telemetry
+# paste the database_id it prints below.
+[[d1_databases]]
+binding = "DB"
+database_name = "escriba-telemetry"
+database_id = "PASTE_YOUR_D1_DATABASE_ID_HERE"
+
+# Set the matching secret with:  npx wrangler secret put ESCRIBA_KEY
+# (do NOT hard-code secrets in this file)
