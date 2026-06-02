@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Escriba — Tape Ministry Workbench</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#f5eede;--paper-card:#fdfaf2;--ink:#2b2520;--ink-soft:#6c6055;--muted:#9b8d7b;
+    --clay:#bb5a36;--clay-deep:#9c4527;--clay-wash:#bb5a360f;--sage:#6c7a4f;--sage-wash:#6c7a4f12;
+    --line:#e6d9c2;--danger:#a4432c;--radius:16px;--radius-sm:10px;
+    --shadow:0 1px 2px #2b252008,0 8px 30px #2b252012,0 2px 8px #2b25200a;
+    --ease:cubic-bezier(.22,.61,.36,1);--ui:"Hanken Grotesk",ui-sans-serif,system-ui,sans-serif;--display:"Fraunces",Georgia,serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--ui);color:var(--ink);background:var(--paper);line-height:1.55;min-height:100vh;
+    padding:36px 20px 64px;display:flex;flex-direction:column;align-items:center;
+    background-image:radial-gradient(120% 80% at 50% -10%,#fffdf7 0%,transparent 55%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E")}
+  .masthead{text-align:center;margin-bottom:18px}
+  .wordmark{display:inline-flex;align-items:center;gap:12px}
+  .wordmark svg{width:28px;height:28px;color:var(--clay)}
+  .wordmark h1{font-family:var(--display);font-weight:600;font-size:32px;letter-spacing:-.01em;line-height:1}
+  .tagline{margin-top:8px;color:var(--ink-soft);font-size:14.5px;max-width:440px}
+  /* tabs (HEURISTIC 6 recognition: the whole workflow is visible) */
+  nav.tabs{display:flex;gap:4px;background:#efe5d1;border:1px solid var(--line);border-radius:999px;padding:5px;margin-bottom:22px;flex-wrap:wrap;justify-content:center}
+  nav.tabs button{font-family:var(--ui);font-size:14px;font-weight:600;color:var(--ink-soft);background:transparent;border:none;
+    border-radius:999px;padding:9px 17px;cursor:pointer;transition:.15s var(--ease)}
+  nav.tabs button:hover{color:var(--clay-deep)}
+  nav.tabs button:focus-visible{outline:2px solid var(--clay);outline-offset:2px}
+  nav.tabs button[aria-selected="true"]{background:var(--paper-card);color:var(--clay-deep);box-shadow:var(--shadow)}
+  .tab{display:none;width:100%;max-width:640px}
+  .tab.active{display:block;animation:rise .4s var(--ease)}
+  .card{width:100%;background:var(--paper-card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:28px}
+  @media(max-width:560px){.card{padding:20px}}
+  .card+.card{margin-top:16px}
+  h2.title{font-family:var(--display);font-weight:600;font-size:22px;margin-bottom:4px}
+  .sub{color:var(--ink-soft);font-size:14px;margin-bottom:18px}
+  .step-eyebrow{font-size:12px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--clay);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .step-eyebrow::after{content:"";flex:1;height:1px;background:var(--line)}
+  .panel{display:none}
+  .drop{border:1.5px dashed #d8c7a8;border-radius:var(--radius);background:#fbf6ea;padding:32px 22px;text-align:center;cursor:pointer;transition:.2s var(--ease)}
+  .drop:hover{border-color:var(--clay);background:#fbf3e4}
+  .drop:focus-visible{outline:3px solid var(--clay);outline-offset:3px}
+  .drop.dragover{border-color:var(--clay);background:var(--clay-wash);transform:scale(1.01)}
+  .drop .wave{width:48px;height:48px;margin:0 auto 12px;color:var(--clay);opacity:.9}
+  .drop .lead{font-size:16px;font-weight:600}
+  .drop .lead .browse{color:var(--clay);text-decoration:underline;text-underline-offset:3px}
+  .drop .hint{font-size:13px;color:var(--muted);margin-top:6px}
+  .drop.sm{padding:20px}
+  .field-error{display:none;margin-top:12px;font-size:14px;color:var(--danger);background:#a4432c0f;border:1px solid #a4432c2e;border-radius:var(--radius-sm);padding:10px 14px}
+  .field-error.show{display:block;animation:rise .3s var(--ease)}
+  .file-chip{display:flex;align-items:center;gap:14px;background:#fbf6ea;border:1px solid var(--line);border-radius:var(--radius-sm);padding:13px 15px;margin-top:14px}
+  .file-chip .fic{width:36px;height:36px;flex:none;display:grid;place-items:center;background:var(--clay-wash);border-radius:9px;color:var(--clay)}
+  .file-chip .meta{flex:1;min-width:0}
+  .file-chip .fname{font-weight:600;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .file-chip .fsub{font-size:12.5px;color:var(--ink-soft);margin-top:1px}
+  .file-chip .remove{flex:none;border:none;background:transparent;cursor:pointer;color:var(--muted);width:32px;height:32px;border-radius:8px;display:grid;place-items:center}
+  .file-chip .remove:hover{background:#a4432c14;color:var(--danger)}
+  .long-note{display:none;margin-top:12px;font-size:13.5px;color:var(--ink-soft);background:var(--sage-wash);border:1px solid #6c7a4f24;border-radius:var(--radius-sm);padding:10px 14px}
+  .long-note.show{display:block}
+  .field{margin-top:20px}
+  .field-label{font-size:14px;font-weight:600;display:flex;align-items:center;gap:7px;margin-bottom:10px}
+  .help{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--muted);color:var(--muted);font-size:11px;font-weight:700;display:grid;place-items:center;cursor:help;position:relative}
+  .help:hover .tip,.help:focus-visible .tip{opacity:1;transform:translateY(0);visibility:visible}
+  .tip{position:absolute;bottom:140%;left:50%;transform:translate(-50%,4px);width:250px;background:var(--ink);color:#f5eede;font-size:12.5px;font-weight:400;line-height:1.5;padding:10px 12px;border-radius:9px;text-align:left;opacity:0;visibility:hidden;transition:.18s var(--ease);z-index:5;pointer-events:none}
+  .tip::after{content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:var(--ink)}
+  .select-wrap{position:relative}
+  select.sel{appearance:none;-webkit-appearance:none;width:100%;font-family:var(--ui);font-size:15px;font-weight:500;color:var(--ink);background:#fff;border:1.5px solid var(--line);border-radius:var(--radius-sm);padding:12px 44px 12px 14px;cursor:pointer}
+  select.sel:focus-visible{outline:2px solid var(--clay);outline-offset:2px;border-color:var(--clay)}
+  .select-wrap::after{content:"";position:absolute;right:16px;top:50%;width:9px;height:9px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:translateY(-65%) rotate(45deg);pointer-events:none}
+  .segmented{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media(max-width:480px){.segmented{grid-template-columns:1fr}}
+  .seg{border:1.5px solid var(--line);background:#fff;border-radius:var(--radius-sm);padding:12px 14px;cursor:pointer;transition:.18s var(--ease)}
+  .seg:hover{border-color:#d8c7a8}
+  .seg input{position:absolute;opacity:0}
+  .seg .seg-title{font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px}
+  .seg .seg-sub{font-size:12px;color:var(--ink-soft);margin-top:3px}
+  .seg .dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--muted);flex:none}
+  .seg[data-on="true"]{border-color:var(--clay);background:var(--clay-wash)}
+  .seg[data-on="true"] .dot{border-color:var(--clay);background:var(--clay);box-shadow:inset 0 0 0 3px var(--paper-card)}
+  .btn{font-family:var(--ui);font-weight:600;font-size:15px;cursor:pointer;border-radius:var(--radius-sm);border:1px solid transparent;transition:.18s var(--ease);display:inline-flex;align-items:center;justify-content:center;gap:9px}
+  .btn:focus-visible{outline:3px solid var(--clay);outline-offset:2px}
+  .btn:disabled{opacity:.55;cursor:not-allowed}
+  .btn-primary{background:var(--clay);color:#fff;width:100%;padding:15px;margin-top:22px;font-size:16px;box-shadow:0 2px 0 var(--clay-deep),0 6px 16px #bb5a3633}
+  .btn-primary:hover:not(:disabled){background:var(--clay-deep);transform:translateY(-1px)}
+  .btn-primary:disabled{background:#dcd1bd;box-shadow:none}
+  .btn-primary.inline{width:auto;margin-top:0;padding:13px 20px}
+  .btn-ghost{background:#fff;border-color:var(--line);color:var(--ink);padding:12px 17px}
+  .btn-ghost:hover{border-color:var(--clay);color:var(--clay-deep)}
+  .btn-text{background:transparent;color:var(--ink-soft);padding:10px 14px}
+  .btn-text:hover{color:var(--clay-deep)}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  /* progress + live */
+  .work-top{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .work-icon{width:28px;height:28px;flex:none;color:var(--clay)}
+  .work-icon .ring{transform-origin:center;animation:spin 1.4s linear infinite}
+  .stage{font-family:var(--display);font-weight:500;font-size:18px}
+  .stage-sub{color:var(--ink-soft);font-size:13px;margin-top:1px}
+  .bar{height:9px;background:#ece0c9;border-radius:99px;overflow:hidden;margin-bottom:6px}
+  .bar>i{display:block;height:100%;width:0%;border-radius:99px;background:linear-gradient(90deg,var(--clay),#d4794f);transition:width .5s var(--ease)}
+  .pct{font-size:12.5px;color:var(--muted);text-align:right;margin-bottom:14px;font-variant-numeric:tabular-nums}
+  .live-label{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px}
+  .live-dot{width:8px;height:8px;border-radius:50%;background:var(--clay);animation:pulse 1.2s infinite}
+  .live,.transcript{border:1px solid var(--line);border-radius:var(--radius-sm);background:#fbf6ea;overflow-y:auto;padding:6px}
+  .live{height:190px}.transcript{max-height:240px}
+  .live .placeholder{color:var(--muted);font-size:14px;text-align:center;padding:22px 12px}
+  .line{display:flex;gap:14px;padding:8px 12px;border-radius:8px}
+  .line:hover{background:#fff}
+  .ts{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;color:var(--clay);background:var(--clay-wash);padding:2px 7px;border-radius:6px;height:fit-content;flex:none;font-weight:600}
+  .line p{font-size:15px}
+  .check{width:32px;height:32px;flex:none;border-radius:50%;background:var(--sage);display:grid;place-items:center;color:#fff}
+  .done-head{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+  .done-sub{color:var(--ink-soft);font-size:14px;margin:0 0 18px 44px}
+  @media(max-width:480px){.done-sub{margin-left:0}}
+  .exports-label{font-size:13px;color:var(--ink-soft);margin:20px 0 10px}
+  .exports{display:flex;flex-wrap:wrap;gap:9px}
+  .chip-btn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:9px 14px;font-size:13.5px;font-weight:600;cursor:pointer;color:var(--ink);display:inline-flex;align-items:center;gap:8px;text-decoration:none}
+  .chip-btn:hover{border-color:var(--clay);color:var(--clay-deep);background:var(--clay-wash)}
+  .chip-btn .ext{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--muted)}
+  .chip-btn.copied{border-color:var(--sage);color:var(--sage)}
+  .done-foot{display:flex;justify-content:space-between;align-items:center;margin-top:22px;padding-top:18px;border-top:1px solid var(--line);flex-wrap:wrap;gap:10px}
+  .saved-note{font-size:13px;color:var(--muted)}
+  .err-box{display:none;background:#a4432c0f;border:1px solid #a4432c2e;border-radius:var(--radius-sm);padding:12px 14px;margin-top:14px;color:var(--danger);font-size:14px}
+  .err-box.show{display:block}
+  audio{width:100%;margin-top:10px}
+  /* waveform */
+  .wave-wrap{position:relative;margin-top:14px;border:1px solid var(--line);border-radius:var(--radius-sm);background:#fbf6ea;overflow:hidden}
+  canvas.wf{display:block;width:100%;height:120px;cursor:crosshair}
+  .wave-hint{font-size:12.5px;color:var(--muted);margin-top:8px}
+  .sel-readout{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--clay-deep);font-weight:600}
+  .slider-row{display:flex;align-items:center;gap:12px;margin-top:6px}
+  .slider-row label{font-size:13.5px;font-weight:600;min-width:120px}
+  .slider-row input[type=range]{flex:1;accent-color:var(--clay)}
+  .slider-row output{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;color:var(--ink-soft);min-width:42px;text-align:right}
+  .ab{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
+  @media(max-width:520px){.ab{grid-template-columns:1fr}}
+  .ab .pane{border:1px solid var(--line);border-radius:var(--radius-sm);padding:12px;background:#fff}
+  .ab .pane h4{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);margin-bottom:2px}
+  .ab .pane.master h4{color:var(--clay-deep)}
+  /* lists (library/audit) */
+  .item{display:flex;align-items:center;gap:10px;padding:11px 13px;border:1px solid var(--line);border-radius:var(--radius-sm);background:#fbf6ea;margin-bottom:8px}
+  .item .imeta{flex:1;min-width:0}
+  .item .iname{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .item .isub{font-size:12px;color:var(--ink-soft);margin-top:1px}
+  .item .idl{display:flex;gap:5px;flex:none;flex-wrap:wrap;justify-content:flex-end}
+  .item .idl a,.item .idl button{font-family:ui-monospace,Menlo,monospace;font-size:11px;font-weight:600;color:var(--clay-deep);text-decoration:none;border:1px solid var(--line);border-radius:6px;padding:3px 7px;background:#fff;cursor:pointer}
+  .empty{font-size:13.5px;color:var(--muted);padding:8px 2px}
+  .pill{font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;text-transform:uppercase;letter-spacing:.04em}
+  .pill.good{background:var(--sage-wash);color:var(--sage)}
+  .pill.bad{background:#a4432c14;color:var(--danger)}
+  .pill.mid{background:#bb8a360f;color:#a07a2a}
+  .folder-body p{font-size:13.5px;color:var(--ink-soft);margin-bottom:12px}
+  .folder-row{display:flex;gap:8px}
+  .folder-row input{flex:1;min-width:0;font-family:var(--ui);font-size:13.5px;color:var(--ink);background:#fff;border:1.5px solid var(--line);border-radius:var(--radius-sm);padding:11px 13px}
+  .folder-msg{font-size:13px;margin-top:10px}.folder-msg.ok{color:var(--sage)}.folder-msg.err{color:var(--danger)}
+  input.text{width:100%;font-family:var(--ui);font-size:14.5px;color:var(--ink);background:#fff;border:1.5px solid var(--line);border-radius:var(--radius-sm);padding:12px 14px}
+  textarea.text{width:100%;font-family:var(--ui);font-size:14.5px;color:var(--ink);background:#fff;border:1.5px solid var(--line);border-radius:var(--radius-sm);padding:12px 14px;min-height:64px;resize:vertical}
+  /* help / about */
+  .help-h{font-family:var(--display);font-weight:600;font-size:18px;margin:18px 0 6px}
+  .help-h:first-child{margin-top:0}
+  .card p.body{font-size:14.5px;color:var(--ink);margin-bottom:10px}
+  .card p.body.dim{color:var(--ink-soft)}
+  ol.steps{margin:0 0 6px 0;padding-left:20px}
+  ol.steps li{font-size:14.5px;margin-bottom:7px}
+  ol.steps li strong{color:var(--clay-deep)}
+  .callout{background:var(--sage-wash);border:1px solid #6c7a4f24;border-radius:var(--radius-sm);padding:12px 14px;font-size:13.5px;color:var(--ink-soft);margin:8px 0}
+  .badge{display:inline-block;font-size:11px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:99px;padding:2px 9px;margin-left:8px;vertical-align:middle}
+  .foot{margin-top:22px;font-size:12.5px;color:var(--muted);text-align:center;line-height:1.8}
+  .foot .stat{color:var(--clay-deep);font-weight:600}
+  /* consent modal */
+  .modal-bg{position:fixed;inset:0;background:#2b252099;display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
+  .modal-bg.show{display:flex}
+  .modal{background:var(--paper-card);border-radius:var(--radius);box-shadow:0 20px 60px #2b252040;max-width:460px;padding:26px}
+  .modal h3{font-family:var(--display);font-weight:600;font-size:20px;margin-bottom:8px}
+  .modal p{font-size:14px;color:var(--ink-soft);margin-bottom:14px}
+  .consent-box{background:#fbf6ea;border:1px solid var(--line);border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:16px}
+  .consent-box ul{list-style:none;font-size:13.5px}
+  .consent-box li{padding:3px 0 3px 22px;position:relative}
+  .consent-box li::before{position:absolute;left:0;top:2px;font-weight:700}
+  .consent-box li.yes::before{content:"✓";color:var(--sage)}
+  .consent-box li.no::before{content:"✕";color:var(--muted)}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0)}
+  @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  @media(prefers-reduced-motion:reduce){*{animation-duration:.001s!important;transition-duration:.05s!important}}
+</style>
+</head>
+<body>
+  <header class="masthead">
+    <div class="wordmark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 4C13 5 9 9 7 14l-3 6 6-3c5-2 9-6 10-13Z"/><path d="M8.5 15.5 4 20"/><path d="M14 8a6 6 0 0 0-4 4"/></svg>
+      <h1>Escriba</h1>
+    </div>
+    <p class="tagline">A workbench for the tape ministry — prepare audio, transcribe with timestamps, restore listening masters, and keep it all organized.</p>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="Stations">
+    <button role="tab" data-tab="transcribe" aria-selected="true">Transcribe</button>
+    <button role="tab" data-tab="prepare" aria-selected="false">Prepare</button>
+    <button role="tab" data-tab="master" aria-selected="false">Master</button>
+    <button role="tab" data-tab="library" aria-selected="false">Library</button>
+    <button role="tab" data-tab="help" aria-selected="false">Help</button>
+  </nav>
+
+  <!-- ====================== TRANSCRIBE ====================== -->
+  <section class="tab active" id="tab-transcribe" role="tabpanel">
+    <div class="card" id="tcard" data-state="idle">
+      <!-- upload -->
+      <div class="panel" id="t-upload">
+        <h2 class="title">Transcribe a tape</h2>
+        <p class="sub">Get a clean transcript with word-level timestamps. Watch it work live, and stop early if a tape isn't right.</p>
+        <div class="drop" id="t-drop" tabindex="0" role="button" aria-label="Drop audio, or press Enter to browse">
+          <svg class="wave" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3 12h2M7 8v8M11 4v16M15 7v10M19 10v4M21 12h0"/></svg>
+          <div class="lead">Drop audio here, or <span class="browse">browse</span></div>
+          <div class="hint">MP3, WAV, M4A, MP4, AAC, FLAC, OGG · up to 4 hours</div>
+        </div>
+        <input type="file" id="t-file" class="sr-only" accept=".mp3,.wav,.m4a,.mp4,.aac,.flac,.ogg,audio/*,video/mp4" />
+        <div class="field-error" id="t-error" role="alert"></div>
+        <div id="t-fileWrap"></div>
+        <div class="long-note" id="t-longNote"></div>
+        <div class="field" id="t-langField" style="display:none">
+          <div class="field-label">Language
+            <span class="help" tabindex="0">?<span class="tip">Pick the language you want to keep. If a live interpreter is on the tape, this chooses which voice to transcribe — best results if that language is on its own track.</span></span>
+          </div>
+          <div class="select-wrap"><select class="sel" id="t-language"><option value="auto">Detect automatically</option><option value="es">Spanish · Español</option><option value="en">English</option></select></div>
+        </div>
+        <div class="field" id="t-modeField" style="display:none">
+          <div class="field-label">How should it run?
+            <span class="help" tabindex="0">?<span class="tip">Standard works on any computer. Fast only helps if you have an NVIDIA graphics card.</span></span>
+          </div>
+          <div class="segmented" role="radiogroup">
+            <label class="seg" data-on="true"><input type="radio" name="tmode" value="standard" checked /><div class="seg-title"><span class="dot"></span>Standard</div><div class="seg-sub">Any computer · slower</div></label>
+            <label class="seg" data-on="false"><input type="radio" name="tmode" value="fast" /><div class="seg-title"><span class="dot"></span>Fast</div><div class="seg-sub">NVIDIA card only</div></label>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="t-start" disabled>Transcribe</button>
+      </div>
+      <!-- working -->
+      <div class="panel" id="t-working">
+        <div class="work-top"><svg class="work-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle class="ring" cx="12" cy="12" r="9" stroke-dasharray="42 16" stroke-linecap="round"/></svg>
+          <div><div class="stage" id="t-stage" role="status" aria-live="polite">Preparing…</div><div class="stage-sub" id="t-stageSub">Running on your computer — give it a little time.</div></div></div>
+        <div class="bar"><i id="t-bar"></i></div><div class="pct" id="t-pct">0%</div>
+        <div class="live-label"><span class="live-dot"></span> Live — appearing as it's transcribed</div>
+        <div class="live" id="t-live"><div class="placeholder">Watching for the first words…</div></div>
+        <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn btn-text" id="t-cancel">Stop</button></div>
+      </div>
+      <!-- done -->
+      <div class="panel" id="t-done">
+        <div class="done-head"><span class="check"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12 5 5L20 6"/></svg></span><h2 class="title">Transcript ready</h2></div>
+        <p class="done-sub" id="t-doneSub"></p>
+        <div class="transcript" id="t-transcript"></div>
+        <p class="exports-label">Download (timestamped formats are the point):</p>
+        <div class="exports">
+          <button class="chip-btn" data-fmt="txt">Plain text <span class="ext">.txt</span></button>
+          <button class="chip-btn" data-fmt="srt">Subtitles <span class="ext">.srt</span></button>
+          <button class="chip-btn" data-fmt="vtt">Web subtitles <span class="ext">.vtt</span></button>
+          <button class="chip-btn" data-fmt="json">Data <span class="ext">.json</span></button>
+          <button class="chip-btn" id="t-copy">Copy text</button>
+        </div>
+        <div class="done-foot"><span class="saved-note" id="t-savedNote">Saved automatically · audio deleted · kept for you</span><button class="btn btn-ghost" id="t-again">Transcribe another</button></div>
+      </div>
+      <!-- error -->
+      <div class="panel" id="t-errp" style="text-align:center">
+        <h2 class="title">That didn't go through</h2><p class="sub" id="t-errMsg"></p><button class="btn btn-ghost" id="t-errBack">Back</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================== PREPARE ====================== -->
+  <section class="tab" id="tab-prepare" role="tabpanel">
+    <div class="card">
+      <h2 class="title">Prepare audio</h2>
+      <p class="sub">Join a split tape (Side A + Side B) into one file and apply a light, automatic cleanup tuned for transcription. Your original files are never changed.</p>
+      <p class="step-eyebrow">Side A (required)</p>
+      <div class="drop sm" id="p-dropA" tabindex="0" role="button"><div class="lead">Drop Side A, or <span class="browse">browse</span></div></div>
+      <input type="file" id="p-fileA" class="sr-only" accept="audio/*,video/mp4,.mp3,.wav,.m4a,.mp4,.aac,.flac,.ogg" />
+      <div id="p-wrapA"></div>
+      <p class="step-eyebrow" style="margin-top:18px">Side B <span class="badge">optional</span></p>
+      <div class="drop sm" id="p-dropB" tabindex="0" role="button"><div class="lead">Drop Side B to join, or <span class="browse">browse</span></div></div>
+      <input type="file" id="p-fileB" class="sr-only" accept="audio/*,video/mp4,.mp3,.wav,.m4a,.mp4,.aac,.flac,.ogg" />
+      <div id="p-wrapB"></div>
+      <div class="field">
+        <label class="seg" id="p-cleanToggle" data-on="true" style="display:block"><input type="checkbox" id="p-clean" checked style="position:absolute;opacity:0" />
+          <div class="seg-title"><span class="dot"></span>Apply light cleanup (recommended)</div>
+          <div class="seg-sub">Normalize volume, cut rumble, gentle denoise — optimized for transcription, not listening.</div></label>
+      </div>
+      <button class="btn btn-primary" id="p-run" disabled>Prepare audio</button>
+      <div class="err-box" id="p-err"></div>
+      <div id="p-result" style="display:none;margin-top:18px">
+        <div class="done-head"><span class="check"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12 5 5L20 6"/></svg></span><h2 class="title">Ready</h2></div>
+        <p class="done-sub" id="p-resultSub"></p>
+        <audio id="p-audio" controls></audio>
+        <div class="row" style="margin-top:14px">
+          <a class="btn btn-ghost" id="p-download" download="prepared.wav">Download</a>
+          <button class="btn btn-primary inline" id="p-toTranscribe">Transcribe this →</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================== MASTER ====================== -->
+  <section class="tab" id="tab-master" role="tabpanel">
+    <div class="card">
+      <h2 class="title">Restore a listening master</h2>
+      <p class="sub">Make a tape sound good for listening. This is hands-on by design: you pick a quiet moment so Escriba learns that tape's noise, then tune and compare against the original. Your original is never changed.</p>
+      <div class="callout" id="m-soxWarn" style="display:none">⚠️ SoX isn't installed, so restoration can't run yet. Re-run setup, or install it with <strong>brew install sox</strong>.</div>
+      <div class="drop sm" id="m-drop" tabindex="0" role="button"><div class="lead">Drop a tape, or <span class="browse">browse</span></div><div class="hint">Use the joined/raw file — not a transcription-prepped one</div></div>
+      <input type="file" id="m-file" class="sr-only" accept="audio/*,video/mp4,.mp3,.wav,.m4a,.mp4,.aac,.flac,.ogg" />
+      <div class="err-box" id="m-err"></div>
+      <div id="m-stage" style="display:none">
+        <p class="step-eyebrow" style="margin-top:18px">Step 1 — Find a quiet moment
+          <span class="help" tabindex="0">?<span class="tip">Drag across a stretch with no talking — silence between sentences, or the lead-in. Escriba samples the hiss/hum there to remove just that. 1–3 seconds is plenty.</span></span>
+        </p>
+        <div class="wave-wrap"><canvas class="wf" id="m-wave" height="120"></canvas></div>
+        <div class="row" style="justify-content:space-between;margin-top:8px">
+          <span class="wave-hint">Drag on the waveform to select a silent region.</span>
+          <span class="sel-readout" id="m-sel">no region selected</span>
+        </div>
+        <audio id="m-srcAudio" controls></audio>
+        <p class="step-eyebrow" style="margin-top:20px">Step 2 — Tune</p>
+        <div class="slider-row"><label>Noise reduction</label><input type="range" id="m-amount" min="0.05" max="0.5" step="0.01" value="0.21" /><output id="m-amountOut">0.21</output></div>
+        <div class="slider-row"><label>Low-end cut (Hz)</label><input type="range" id="m-hp" min="20" max="120" step="5" value="60" /><output id="m-hpOut">60</output></div>
+        <p class="stage-sub">Tip: more reduction isn't better — too much adds a watery, robotic sound. Start around 0.2 and only raise it if hiss remains.</p>
+        <button class="btn btn-primary" id="m-preview" disabled>Preview master</button>
+        <div id="m-ab" style="display:none">
+          <div class="ab">
+            <div class="pane"><h4>Before — original</h4><audio id="m-beforeAudio" controls></audio></div>
+            <div class="pane master"><h4>After — master</h4><audio id="m-afterAudio" controls></audio></div>
+          </div>
+          <div class="row" style="margin-top:16px">
+            <input class="text" id="m-name" placeholder="Name this master (e.g. 1987-03-15 Sunday AM)" style="flex:1;min-width:200px" />
+            <button class="btn btn-primary inline" id="m-save">Save master</button>
+          </div>
+          <div class="folder-msg" id="m-saveMsg"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================== LIBRARY ====================== -->
+  <section class="tab" id="tab-library" role="tabpanel">
+    <div class="card">
+      <h2 class="title">Quick tape audit</h2>
+      <p class="sub">Before transcribing, flag a tape's quality so the team doesn't waste time on a bad one. The audio plays here on your computer — nothing is uploaded.</p>
+      <div class="drop sm" id="a-drop" tabindex="0" role="button"><div class="lead">Drop a tape to listen, or <span class="browse">browse</span></div></div>
+      <input type="file" id="a-file" class="sr-only" accept="audio/*,video/mp4,.mp3,.wav,.m4a,.mp4,.aac,.flac,.ogg" />
+      <div id="a-stage" style="display:none;margin-top:6px">
+        <div class="file-chip"><span class="fic"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 18V6l10-2v12"/><circle cx="6" cy="18" r="3"/><circle cx="16" cy="16" r="3"/></svg></span><span class="meta"><span class="iname" id="a-name"></span></span></div>
+        <audio id="a-audio" controls></audio>
+        <div class="field"><div class="field-label">Quality</div>
+          <div class="select-wrap"><select class="sel" id="a-tag">
+            <option value="good">Good — ready to transcribe</option>
+            <option value="muffled">Muffled / low quality</option>
+            <option value="damaged">Damaged</option>
+            <option value="side-only">Side A or B only</option>
+            <option value="wrong">Wrong / not a sermon</option>
+          </select></div>
+        </div>
+        <textarea class="text" id="a-note" placeholder="Optional note (e.g. 'audio drops out around 12 min')" style="margin-top:12px"></textarea>
+        <button class="btn btn-primary" id="a-save">Save audit</button>
+        <div class="folder-msg" id="a-msg"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="title">Transcripts</h2><p class="sub">Saved automatically so nothing is ever lost.</p>
+      <div id="lib-history"><div class="empty">Loading…</div></div>
+    </div>
+    <div class="card">
+      <h2 class="title">Listening masters</h2>
+      <div id="lib-masters"><div class="empty">Loading…</div></div>
+    </div>
+    <div class="card">
+      <h2 class="title">Tape audits</h2>
+      <div id="lib-audits"><div class="empty">Loading…</div></div>
+    </div>
+    <div class="card">
+      <h2 class="title">Shared folder</h2>
+      <div class="folder-body">
+        <p>Save every transcript and master into a folder too. Point this at your church's <strong>Google Drive or Dropbox sync folder</strong> and the whole team gets each file automatically — no accounts needed.</p>
+        <div class="folder-row"><input type="text" id="lib-folder" placeholder="/Users/you/Library/CloudStorage/GoogleDrive-…/TapeMinistry" /><button class="btn btn-ghost" id="lib-folderSave">Save</button></div>
+        <div class="folder-msg" id="lib-folderMsg"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================== HELP ====================== -->
+  <section class="tab" id="tab-help" role="tabpanel">
+    <div class="card">
+      <h2 class="title">About Escriba</h2>
+      <p class="body">Escriba is a free workbench built for Apóstol Bernabé Garcia's tape ministry. It helps a small team turn a large archive of cassette recordings into clean transcripts and good-sounding listening masters, as efficiently as possible.</p>
+      <p class="body dim">Everything runs on your own computer. Your audio and transcripts are never uploaded — transcription is free and private. The only thing that can be shared is anonymous usage counts, and only if you agreed when you first opened the app. Finished work is saved automatically so it's never lost, and can also sync to a shared team folder.</p>
+      <div class="callout">The work splits into four stations, shown in the tabs above: <strong>Prepare</strong> (join + clean), <strong>Transcribe</strong> (timestamped transcript), <strong>Master</strong> (listening restoration), and <strong>Library</strong> (audit + everything you've made).</div>
+    </div>
+    <div class="card">
+      <h2 class="title">How to use it</h2>
+
+      <div class="help-h">A typical tape, start to finish</div>
+      <ol class="steps">
+        <li><strong>Audit it first (Library tab).</strong> Drop the tape in, listen for a few seconds, and flag its quality. If it's damaged or the wrong recording, you just saved yourself an hour.</li>
+        <li><strong>Prepare the audio (Prepare tab).</strong> If the sermon is split across Side A and Side B, drop both in to join them into one file. Leave "light cleanup" on. Click Prepare.</li>
+        <li><strong>Transcribe (Transcribe tab, or "Transcribe this →" from Prepare).</strong> Pick the language, click Transcribe, and watch the words appear live. Stop early if something's wrong. When it's done, download the format you need.</li>
+        <li><strong>Make a listening master (Master tab) — only if the tape is worth it.</strong> Not every tape needs this. For ones people will actually listen to, restore a clean-sounding version.</li>
+      </ol>
+
+      <div class="help-h">Joining Side A + Side B</div>
+      <p class="body">In the Prepare tab, drop Side A in the first box and Side B in the second. Escriba stitches them into one continuous file. This replaces fiddling with GarageBand and gives you a clean, repeatable join every time.</p>
+
+      <div class="help-h">Restoring a listening master</div>
+      <p class="body">This one is hands-on, and that's on purpose — there's no magic "fix it" button that produces a good master, because every tape's noise is different. The method professionals use, which Escriba follows:</p>
+      <ol class="steps">
+        <li>Drop the tape in the Master tab.</li>
+        <li><strong>Drag across a quiet moment</strong> on the waveform — a gap between sentences, or the silent lead-in. This teaches Escriba what <em>this tape's</em> noise sounds like, so it removes only that.</li>
+        <li>Click <strong>Preview master</strong>, then compare Before and After with the two players.</li>
+        <li>Tune if needed. More noise reduction is <em>not</em> better — too much makes voices sound watery. Start low.</li>
+        <li>When it sounds right, name it and <strong>Save master</strong>. You get both a high-quality WAV and a shareable MP3.</li>
+      </ol>
+      <div class="callout">First time? Pick one tape and settle on settings you like before doing the whole archive — that's what audio archivists recommend, and it saves redoing work.</div>
+
+      <div class="help-h">Where your work goes</div>
+      <p class="body">Every transcript and master is saved automatically to a library on your computer (and listed in the Library tab). Set a Shared folder there to also copy everything into your team's Google Drive or Dropbox, so the whole team stays in sync.</p>
+
+      <div class="help-h">Standard vs Fast, and languages</div>
+      <p class="body dim">Use Standard mode unless your computer has an NVIDIA graphics card. For language, pick Spanish or English, or let it auto-detect. If a tape has a live interpreter, choose the language you want to keep — and if you can, record that language on its own track for the cleanest result.</p>
+    </div>
+  </section>
+
+  <p class="foot">Runs on your machine — no account, transcription is free. &nbsp;·&nbsp; <a href="#" id="helpLink" style="color:var(--ink-soft)">Setup video</a><span id="statLine"></span></p>
+
+  <!-- consent modal -->
+  <div class="modal-bg" id="consentModal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="consentTitle">
+      <h3 id="consentTitle">A quick note on usage stats</h3>
+      <p>Escriba is free and runs on your computer. To understand how it's used and keep improving it, it can share anonymous usage stats. Your choice — it works fully either way.</p>
+      <div class="consent-box"><ul>
+        <li class="yes">Shares: an anonymous ID, how many transcriptions you run, and total minutes</li>
+        <li class="no">Never shares: your audio, transcripts, file names, or anything personal</li>
+      </ul></div>
+      <div class="row"><button class="btn btn-primary inline" id="consentAgree">Agree &amp; continue</button><button class="btn btn-ghost" id="consentDecline">Use without sharing</button></div>
+    </div>
+  </div>
+
+<script>
+/* =========================================================================
+   Escriba platform — all stations. Talks to the real FastAPI backend.
+   Each interaction maps to a Nielsen heuristic; see comments inline.
+   ========================================================================= */
+const $=id=>document.getElementById(id);
+const escapeHtml=t=>(t||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const clock=s=>`${String(Math.floor(s/60)).padStart(2,'0')}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+function stamp(s,sep){const ms=Math.round((s%1)*1000),t=Math.floor(s);
+  return `${String(Math.floor(t/3600)).padStart(2,'0')}:${String(Math.floor(t%3600/60)).padStart(2,'0')}:${String(t%60).padStart(2,'0')}${sep}${String(ms).padStart(3,'0')}`;}
+const ACCEPTED=["mp3","wav","m4a","mp4","aac","flac","ogg"];
+const extOk=n=>ACCEPTED.includes((n||'').split('.').pop().toLowerCase());
+
+/* ---- tabs (HEURISTIC 6: workflow always visible; 7: quick switching) ---- */
+document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav.tabs button').forEach(x=>x.setAttribute('aria-selected','false'));
+  b.setAttribute('aria-selected','true');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  $('tab-'+b.dataset.tab).classList.add('active');
+  if(b.dataset.tab==='library') loadLibrary();
+});
+function gotoTab(name){document.querySelector(`nav.tabs button[data-tab="${name}"]`).click();}
+
+/* ---- consent + stats ---- */
+async function boot(){
+  try{const cfg=await (await fetch('/api/config')).json();
+    renderStats(cfg);renderFolder(cfg.output_folder||"");
+    if(cfg.consent===null)$('consentModal').classList.add('show');
+  }catch(e){}
+}
+function renderStats(cfg){if(cfg&&cfg.transcriptions>0)
+  $('statLine').innerHTML=` &nbsp;·&nbsp; On this computer: <span class="stat">${cfg.transcriptions}</span> transcripts, <span class="stat">${cfg.minutes}</span> min`;}
+async function sendConsent(agree){const fd=new FormData();fd.append('agree',agree);
+  try{const cfg=await (await fetch('/api/consent',{method:'POST',body:fd})).json();renderStats(cfg);}catch(e){}
+  $('consentModal').classList.remove('show');}
+$('consentAgree').onclick=()=>sendConsent(true);
+$('consentDecline').onclick=()=>sendConsent(false);
+$('helpLink').onclick=e=>{e.preventDefault();gotoTab('help');};
+
+/* generic drag/drop+click wiring */
+function wireDrop(dropEl,inputEl,onFile){
+  dropEl.onclick=()=>inputEl.click();
+  dropEl.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();inputEl.click();}};
+  inputEl.onchange=e=>{if(e.target.files[0])onFile(e.target.files[0]);};
+  ['dragenter','dragover'].forEach(ev=>dropEl.addEventListener(ev,e=>{e.preventDefault();dropEl.classList.add('dragover');}));
+  ['dragleave','drop'].forEach(ev=>dropEl.addEventListener(ev,e=>{e.preventDefault();dropEl.classList.remove('dragover');}));
+  dropEl.addEventListener('drop',e=>{if(e.dataTransfer.files[0])onFile(e.dataTransfer.files[0]);});
+}
+function fileChip(name,sub,onRemove){
+  return `<div class="file-chip"><span class="fic"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 18V6l10-2v12"/><circle cx="6" cy="18" r="3"/><circle cx="16" cy="16" r="3"/></svg></span>
+    <span class="meta"><span class="fname">${escapeHtml(name)}</span><span class="fsub">${sub}</span></span>
+    ${onRemove?'<button class="remove" aria-label="Remove">✕</button>':''}</div>`;
+}
+
+/* ============================ TRANSCRIBE ============================ */
+(function(){
+  const card=$('tcard');let sel=null,SEG=[],LANG="",jobId=null,es=null,finished=false,liveN=0,savedOut=null;
+  function show(state){card.querySelectorAll('.panel').forEach(p=>p.style.display='none');
+    $({idle:'t-upload',ready:'t-upload',working:'t-working',done:'t-done',error:'t-errp'}[state]).style.display='block';card.dataset.state=state;}
+  show('idle');
+  wireDrop($('t-drop'),$('t-file'),handle);
+  function handle(file){$('t-error').classList.remove('show');
+    if(!extOk(file.name)){$('t-error').innerHTML="<strong>That file type isn't supported.</strong> Try MP3, WAV, M4A, or MP4.";$('t-error').classList.add('show');return;}
+    sel={name:file.name,sizeMB:file.size/1048576,minutes:null,file};render();
+    if(file.type.startsWith('audio')||file.type==='video/mp4'){const url=URL.createObjectURL(file),a=new Audio();a.preload='metadata';
+      a.onloadedmetadata=()=>{sel.minutes=a.duration/60;URL.revokeObjectURL(url);render();};a.src=url;}}
+  function render(){const mins=sel.minutes?`${Math.round(sel.minutes)} min`:'audio file';
+    $('t-fileWrap').innerHTML=fileChip(sel.name,`${sel.sizeMB.toFixed(1)} MB · ${mins}`,true);
+    $('t-fileWrap').querySelector('.remove').onclick=reset;
+    $('t-longNote').classList.toggle('show',sel.minutes&&sel.minutes>90);
+    if(sel.minutes&&sel.minutes>90)$('t-longNote').textContent=`Heads up — long recording (~${Math.round(sel.minutes)} min). On Standard it may take a while; that's normal.`;
+    $('t-langField').style.display='block';$('t-modeField').style.display='block';$('t-start').disabled=false;card.dataset.state='ready';}
+  function reset(){sel=null;$('t-file').value='';$('t-fileWrap').innerHTML='';$('t-longNote').classList.remove('show');
+    $('t-langField').style.display='none';$('t-modeField').style.display='none';$('t-start').disabled=true;show('idle');}
+  document.querySelectorAll('input[name=tmode]').forEach(i=>i.onchange=()=>document.querySelectorAll('#t-modeField .seg').forEach(s=>s.dataset.on=s.querySelector('input').checked?'true':'false'));
+  $('t-start').onclick=async()=>{
+    finished=false;liveN=0;SEG=[];savedOut=null;
+    $('t-live').innerHTML='<div class="placeholder">Watching for the first words…</div>';
+    prog(0,'Uploading…','Sending your file to the local app.');show('working');
+    const fd=new FormData();fd.append('file',sel.file);
+    fd.append('mode',document.querySelector('input[name=tmode]:checked').value);
+    fd.append('language',$('t-language').value);
+    try{const r=await fetch('/api/transcribe',{method:'POST',body:fd});
+      if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.detail||'Upload failed.');}
+      jobId=(await r.json()).job_id;openStream();
+    }catch(err){showErr(err.message);}
+  };
+  window.transcribeToken=async(token,name)=>{   // called by Prepare → "Transcribe this"
+    gotoTab('transcribe');finished=false;liveN=0;SEG=[];savedOut=null;
+    $('t-live').innerHTML='<div class="placeholder">Watching for the first words…</div>';
+    prog(0,'Starting…','Using your prepared audio.');show('working');
+    const fd=new FormData();fd.append('token',token);fd.append('mode','standard');fd.append('language',$('t-language').value);fd.append('name',name||'prepared-audio');
+    try{const r=await fetch('/api/transcribe-token',{method:'POST',body:fd});
+      if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.detail||'Could not start.');}
+      jobId=(await r.json()).job_id;openStream();}catch(err){showErr(err.message);}
+  };
+  function openStream(){es=new EventSource('/api/stream/'+jobId);
+    es.onmessage=ev=>{let m;try{m=JSON.parse(ev.data);}catch(e){return;}handleEv(m);};
+    es.onerror=()=>{if(!finished){es.close();showErr('Lost contact with the app. Is the Escriba window still open?');}};}
+  function handleEv(m){
+    if(m.type==='stage')prog(m.progress,m.stage);
+    else if(m.type==='language')LANG=m.language;
+    else if(m.type==='segment'){addLive(m);if(m.progress)prog(m.progress);}
+    else if(m.type==='done'){finished=true;es&&es.close();savedOut=m.saved_to_output;loadResult();}
+    else if(m.type==='cancelled'){finished=true;es&&es.close();show('ready');}
+    else if(m.type==='error'){finished=true;es&&es.close();showErr(m.message||'Transcription failed.');}
+  }
+  function addLive(seg){if(liveN===0)$('t-live').innerHTML='';liveN++;SEG.push({start:seg.start,end:seg.end,text:seg.text,words:[]});
+    const el=document.createElement('div');el.className='line';el.innerHTML=`<span class="ts">${clock(seg.start)}</span><p>${escapeHtml(seg.text)}</p>`;
+    $('t-live').appendChild(el);$('t-live').scrollTop=$('t-live').scrollHeight;}
+  function prog(p,stage,sub){if(p!=null){$('t-bar').style.width=p+'%';$('t-pct').textContent=Math.floor(p)+'%';}if(stage)$('t-stage').textContent=stage;if(sub)$('t-stageSub').textContent=sub;}
+  async function loadResult(){try{const d=await (await fetch('/api/result/'+jobId)).json();SEG=d.segments||SEG;LANG=d.language||LANG;}catch(e){}done();
+    try{const cfg=await (await fetch('/api/config')).json();renderStats(cfg);}catch(e){}}
+  $('t-cancel').onclick=async()=>{try{await fetch('/api/cancel/'+jobId,{method:'POST'});}catch(e){}finished=true;es&&es.close();show('ready');};
+  function done(){$('t-transcript').innerHTML=SEG.map(s=>`<div class="line"><span class="ts">${clock(s.start)}</span><p>${escapeHtml(s.text)}</p></div>`).join('');
+    const total=SEG.length?clock(SEG[SEG.length-1].end):'0:00';const ln={es:'Spanish',en:'English'}[LANG]||'auto-detected';
+    $('t-doneSub').textContent=`${SEG.length} segments · ${total} · ${ln} · word-level timing`;
+    $('t-savedNote').textContent=(savedOut&&savedOut!=='error')?'Saved automatically · also copied to your shared folder':'Saved automatically · audio deleted · kept for you';
+    show('done');}
+  function build(fmt){if(fmt==='txt')return SEG.map(s=>`[${clock(s.start)}] ${s.text}`).join('\n');
+    if(fmt==='srt')return SEG.map((s,i)=>`${i+1}\n${stamp(s.start,',')} --> ${stamp(s.end,',')}\n${s.text}\n`).join('\n');
+    if(fmt==='vtt')return 'WEBVTT\n\n'+SEG.map(s=>`${stamp(s.start,'.')} --> ${stamp(s.end,'.')}\n${s.text}\n`).join('\n');
+    if(fmt==='json')return JSON.stringify({tool:'Escriba',language:LANG,segments:SEG},null,2);}
+  document.querySelectorAll('#t-done .chip-btn[data-fmt]').forEach(b=>b.onclick=()=>{
+    const blob=new Blob([build(b.dataset.fmt)],{type:'text/plain;charset=utf-8'});const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);a.download='transcript.'+b.dataset.fmt;a.click();URL.revokeObjectURL(a.href);});
+  $('t-copy').onclick=async()=>{try{await navigator.clipboard.writeText(build('txt'));const o=$('t-copy').textContent;$('t-copy').textContent='Copied ✓';$('t-copy').classList.add('copied');setTimeout(()=>{$('t-copy').textContent=o;$('t-copy').classList.remove('copied');},1500);}catch(e){alert('Use the .txt download instead.');}};
+  $('t-again').onclick=reset;
+  function showErr(m){$('t-errMsg').textContent=m;show('error');}
+  $('t-errBack').onclick=()=>show('ready');
+})();
+
+/* ============================ PREPARE ============================ */
+(function(){
+  let fileA=null,fileB=null,resultToken=null;
+  wireDrop($('p-dropA'),$('p-fileA'),f=>{if(!extOk(f.name))return setErr('Side A: unsupported type.');fileA=f;$('p-wrapA').innerHTML=fileChip(f.name,(f.size/1048576).toFixed(1)+' MB',true);$('p-wrapA').querySelector('.remove').onclick=()=>{fileA=null;$('p-wrapA').innerHTML='';upd();};upd();});
+  wireDrop($('p-dropB'),$('p-fileB'),f=>{if(!extOk(f.name))return setErr('Side B: unsupported type.');fileB=f;$('p-wrapB').innerHTML=fileChip(f.name,(f.size/1048576).toFixed(1)+' MB',true);$('p-wrapB').querySelector('.remove').onclick=()=>{fileB=null;$('p-wrapB').innerHTML='';};});
+  $('p-cleanToggle').onclick=e=>{if(e.target.tagName==='INPUT')return;const c=$('p-clean');c.checked=!c.checked;$('p-cleanToggle').dataset.on=c.checked?'true':'false';};
+  function setErr(m){$('p-err').textContent=m;$('p-err').classList.add('show');}
+  function upd(){$('p-run').disabled=!fileA;}
+  $('p-run').onclick=async()=>{
+    $('p-err').classList.remove('show');$('p-run').disabled=true;$('p-run').textContent='Working…';
+    const fd=new FormData();fd.append('file_a',fileA);if(fileB)fd.append('file_b',fileB);fd.append('clean',$('p-clean').checked);
+    try{const r=await fetch('/api/prepare',{method:'POST',body:fd});
+      if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.detail||'Prep failed.');}
+      const d=await r.json();resultToken=d.token;
+      $('p-resultSub').textContent=`${d.joined?'Joined both sides · ':''}${d.cleaned?'cleaned · ':''}${d.duration} sec total`;
+      $('p-audio').src=d.url;$('p-download').href=d.url;$('p-result').style.display='block';
+    }catch(err){setErr(err.message);}
+    finally{$('p-run').disabled=false;$('p-run').textContent='Prepare audio';}
+  };
+  $('p-toTranscribe').onclick=()=>{if(resultToken)window.transcribeToken(resultToken,(fileA&&fileA.name)||'prepared-audio');};
+})();
+
+/* ============================ MASTER ============================ */
+(function(){
+  let token=null,duration=0,selStart=null,selEnd=null,dragging=false,dragX0=0;
+  const cv=$('m-wave'),ctx=cv.getContext('2d');
+  wireDrop($('m-drop'),$('m-file'),upload);
+  async function upload(file){
+    if(!extOk(file.name))return err('Unsupported file type.');
+    $('m-err').classList.remove('show');
+    const fd=new FormData();fd.append('file',file);
+    try{const r=await fetch('/api/master/upload',{method:'POST',body:fd});
+      if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.detail||'Upload failed.');}
+      const d=await r.json();token=d.token;duration=d.duration;
+      if(!d.sox)$('m-soxWarn').style.display='block';
+      $('m-srcAudio').src=d.url;$('m-stage').style.display='block';
+      $('m-ab').style.display='none';selStart=selEnd=null;updateSel();
+      drawWaveFromUrl(d.url);
+    }catch(e2){err(e2.message);}
+  }
+  function err(m){$('m-err').textContent=m;$('m-err').classList.add('show');}
+  // draw a real waveform by decoding the audio (HEURISTIC 1: see the audio)
+  async function drawWaveFromUrl(url){
+    try{const buf=await (await fetch(url)).arrayBuffer();
+      const AC=window.AudioContext||window.webkitAudioContext;const ac=new AC();
+      const audio=await ac.decodeAudioData(buf);
+      const data=audio.getChannelData(0);const W=cv.clientWidth||600;cv.width=W;const H=cv.height;
+      const step=Math.floor(data.length/W);ctx.clearRect(0,0,W,H);ctx.fillStyle='#bb5a36';
+      for(let i=0;i<W;i++){let min=1,max=-1;for(let j=0;j<step;j++){const v=data[i*step+j]||0;if(v<min)min=v;if(v>max)max=v;}
+        const y1=(1+min)*H/2,y2=(1+max)*H/2;ctx.fillRect(i,y1,1,Math.max(1,y2-y1));}
+      drawSel();
+    }catch(e){ctx.clearRect(0,0,cv.width,cv.height);ctx.fillStyle='#9b8d7b';ctx.font='13px sans-serif';ctx.fillText('(waveform unavailable — you can still select a time range by dragging)',12,60);}
+  }
+  function xToT(x){return Math.max(0,Math.min(duration,(x/cv.clientWidth)*duration));}
+  cv.addEventListener('pointerdown',e=>{dragging=true;dragX0=e.offsetX;selStart=xToT(e.offsetX);selEnd=selStart;cv.setPointerCapture(e.pointerId);});
+  cv.addEventListener('pointermove',e=>{if(!dragging)return;const a=Math.min(dragX0,e.offsetX),b=Math.max(dragX0,e.offsetX);selStart=xToT(a);selEnd=xToT(b);updateSel();drawWaveAndSel();});
+  cv.addEventListener('pointerup',()=>{dragging=false;updateSel();});
+  function drawWaveAndSel(){if($('m-srcAudio').src)drawSel();}
+  function drawSel(){const W=cv.clientWidth,H=cv.height;
+    // redraw selection overlay without re-decoding: cheap rect
+    cv.style.background='linear-gradient(to right,'+
+      `transparent ${(selStart/duration)*100||0}%,#bb5a3622 ${(selStart/duration)*100||0}%,`+
+      `#bb5a3622 ${(selEnd/duration)*100||0}%,transparent ${(selEnd/duration)*100||0}%)`;}
+  function updateSel(){if(selStart==null){$('m-sel').textContent='no region selected';$('m-preview').disabled=true;return;}
+    const a=Math.min(selStart,selEnd),b=Math.max(selStart,selEnd);
+    $('m-sel').textContent=`${a.toFixed(1)}s – ${b.toFixed(1)}s (${(b-a).toFixed(1)}s of noise)`;
+    $('m-preview').disabled=(b-a)<0.2;drawSel();}
+  $('m-amount').oninput=e=>$('m-amountOut').textContent=(+e.target.value).toFixed(2);
+  $('m-hp').oninput=e=>$('m-hpOut').textContent=e.target.value;
+  $('m-preview').onclick=async()=>{
+    const a=Math.min(selStart,selEnd),b=Math.max(selStart,selEnd);
+    $('m-preview').disabled=true;$('m-preview').textContent='Rendering…';$('m-err').classList.remove('show');
+    const fd=new FormData();fd.append('token',token);fd.append('start',a);fd.append('end',b);
+    fd.append('amount',$('m-amount').value);fd.append('highpass',$('m-hp').value);
+    try{const r=await fetch('/api/master/preview',{method:'POST',body:fd});
+      if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.detail||'Render failed.');}
+      const d=await r.json();$('m-beforeAudio').src=$('m-srcAudio').src;$('m-afterAudio').src=d.url;$('m-ab').style.display='block';
+    }catch(e2){err(e2.message);}
+    finally{$('m-preview').disabled=false;$('m-preview').textContent='Preview master';}
+  };
+  $('m-save').onclick=async()=>{
+    const a=Math.min(selStart,selEnd),b=Math.max(selStart,selEnd);
+    $('m-save').disabled=true;$('m-save').textContent='Saving…';
+    const fd=new FormData();fd.append('token',token);fd.append('start',a);fd.append('end',b);
+    fd.append('amount',$('m-amount').value);fd.append('highpass',$('m-hp').value);fd.append('name',$('m-name').value||'master');
+    try{const r=await fetch('/api/master/save',{method:'POST',body:fd});
+      if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.detail||'Save failed.');}
+      const rec=await r.json();
+      $('m-saveMsg').className='folder-msg ok';
+      $('m-saveMsg').textContent=(rec.saved_to_output&&rec.saved_to_output!=='error')?'Saved to your library and shared folder.':'Saved to your library.';
+    }catch(e2){$('m-saveMsg').className='folder-msg err';$('m-saveMsg').textContent=e2.message;}
+    finally{$('m-save').disabled=false;$('m-save').textContent='Save master';}
+  };
+})();
+
+/* ============================ AUDIT + LIBRARY ============================ */
+(function(){
+  let auditName=null;
+  wireDrop($('a-drop'),$('a-file'),f=>{auditName=f.name;$('a-name').textContent=f.name;
+    $('a-audio').src=URL.createObjectURL(f);$('a-stage').style.display='block';});
+  $('a-save').onclick=async()=>{
+    if(!auditName)return;const fd=new FormData();fd.append('name',auditName);fd.append('tag',$('a-tag').value);fd.append('note',$('a-note').value);
+    try{await fetch('/api/audit',{method:'POST',body:fd});$('a-msg').className='folder-msg ok';$('a-msg').textContent='Audit saved.';loadLibrary();}
+    catch(e){$('a-msg').className='folder-msg err';$('a-msg').textContent='Could not save.';}
+  };
+})();
+
+function renderFolder(p){const el=$('lib-folder');if(el)el.value=p||"";}
+$('lib-folderSave').onclick=async()=>{
+  const path=$('lib-folder').value.trim();const fd=new FormData();fd.append('path',path);
+  try{const r=await fetch('/api/output-folder',{method:'POST',body:fd});
+    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.detail||'Could not save.');}
+    const d=await r.json();$('lib-folderMsg').className='folder-msg ok';
+    $('lib-folderMsg').textContent=d.output_folder?'Saved. Files will also be copied there.':'Cleared.';
+  }catch(err){$('lib-folderMsg').className='folder-msg err';$('lib-folderMsg').textContent=err.message;}
+};
+const PILL={good:'good',muffled:'mid','damaged':'bad','side-only':'mid',wrong:'bad'};
+async function loadLibrary(){
+  try{const h=(await (await fetch('/api/history')).json()).items||[];
+    $('lib-history').innerHTML=h.length?h.map(it=>{
+      const when=new Date(it.created_at).toLocaleDateString(undefined,{month:'short',day:'numeric'});
+      const ln={es:'Spanish',en:'English'}[it.language]||it.language||'';
+      const q=it.quality?`<span class="pill ${PILL[it.quality]||'mid'}">${it.quality}</span>`:'';
+      return `<div class="item"><div class="imeta"><div class="iname">${escapeHtml(it.name)} ${q}</div><div class="isub">${when} · ${it.segments} segments · ${ln}</div></div>
+        <div class="idl"><a href="/api/history/${it.id}/txt">txt</a><a href="/api/history/${it.id}/srt">srt</a><a href="/api/history/${it.id}/vtt">vtt</a><a href="/api/history/${it.id}/json">json</a></div></div>`;
+    }).join(''):'<div class="empty">No transcripts yet.</div>';
+  }catch(e){}
+  try{const m=(await (await fetch('/api/masters')).json()).items||[];
+    $('lib-masters').innerHTML=m.length?m.map(it=>{
+      const when=new Date(it.created_at).toLocaleDateString(undefined,{month:'short',day:'numeric'});
+      return `<div class="item"><div class="imeta"><div class="iname">${escapeHtml(it.name)}</div><div class="isub">${when} · master</div></div>
+        <div class="idl"><a href="/api/masters/${it.id}/mp3">mp3</a><a href="/api/masters/${it.id}/wav">wav</a></div></div>`;
+    }).join(''):'<div class="empty">No masters yet.</div>';
+  }catch(e){}
+  try{const a=(await (await fetch('/api/audits')).json()).items||[];
+    $('lib-audits').innerHTML=a.length?a.map(it=>{
+      const when=new Date(it.created_at).toLocaleDateString(undefined,{month:'short',day:'numeric'});
+      return `<div class="item"><div class="imeta"><div class="iname">${escapeHtml(it.name)} <span class="pill ${PILL[it.tag]||'mid'}">${it.tag}</span></div><div class="isub">${when}${it.note?' · '+escapeHtml(it.note):''}</div></div></div>`;
+    }).join(''):'<div class="empty">No audits yet.</div>';
+  }catch(e){}
+}
+boot();
+</script>
+</body>
+</html>

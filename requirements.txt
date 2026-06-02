@@ -1,0 +1,14 @@
+# Web framework + server. fastapi[standard] pulls in uvicorn and python-multipart.
+fastapi[standard]>=0.115
+python-multipart
+
+# Transcription engine. WhisperX provides word-level alignment; faster-whisper
+# (its dependency) provides the streaming transcription we show live.
+# This installs torch + ctranslate2 under the hood and is several GB.
+whisperx
+faster-whisper
+
+# ffmpeg is NOT a pip package — install it separately and keep it on PATH:
+#   macOS:    brew install ffmpeg
+#   Windows:  winget install Gyan.FFmpeg     (or download from ffmpeg.org)
+#   Linux:    sudo apt install ffmpeg
