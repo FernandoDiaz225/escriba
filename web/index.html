@@ -313,19 +313,36 @@
       <input type="file" id="m-file" class="sr-only" accept="audio/*,video/mp4,.mp3,.wav,.m4a,.mp4,.aac,.flac,.ogg" />
       <div class="err-box" id="m-err"></div>
       <div id="m-stage" style="display:none">
-        <p class="step-eyebrow" style="margin-top:18px">Step 1 — Find a quiet moment
-          <span class="help" tabindex="0">?<span class="tip">Drag across a stretch with no talking — silence between sentences, or the lead-in. Escriba samples the hiss/hum there to remove just that. 1–3 seconds is plenty.</span></span>
+        <p class="step-eyebrow" style="margin-top:18px">Step 1 — Pick a quiet moment to sample the noise
+          <span class="help" tabindex="0">?<span class="tip">Escriba removes whatever noise is in the bit you pick — so choose a stretch with NO talking. The silent lead-in at the very start is usually perfect. 1–3 seconds is plenty.</span></span>
         </p>
-        <div class="wave-wrap"><canvas class="wf" id="m-wave" height="120"></canvas></div>
-        <div class="row" style="justify-content:space-between;margin-top:8px">
-          <span class="wave-hint">Drag on the waveform to select a silent region.</span>
+        <!-- PRIMARY: one click handles the common case (lead-in static) -->
+        <div class="row" style="margin-bottom:12px">
+          <button class="btn btn-ghost" id="m-useLeadin">Use the first 3 seconds (lead-in)</button>
           <span class="sel-readout" id="m-sel">no region selected</span>
         </div>
+        <!-- FALLBACK: type exact times — better than dragging on a long tape -->
+        <div class="row" style="gap:8px;align-items:flex-end;margin-bottom:6px">
+          <div><div class="field-label" style="margin-bottom:5px">From (sec)</div><input class="text" id="m-start" type="number" min="0" step="0.1" value="0" style="width:110px"></div>
+          <div><div class="field-label" style="margin-bottom:5px">To (sec)</div><input class="text" id="m-end" type="number" min="0" step="0.1" value="3" style="width:110px"></div>
+          <button class="btn btn-ghost" id="m-useTimes">Use these times</button>
+        </div>
+        <details class="disclose" style="border:none;margin-top:4px">
+          <summary style="padding:8px 2px;font-size:13px;color:var(--ink-soft)">Or drag on the waveform (best for short tapes)</summary>
+          <div class="wave-wrap"><canvas class="wf" id="m-wave" height="120"></canvas></div>
+          <div class="wave-hint" id="m-waveHint">Drag across a silent region. On very long tapes, use the lead-in button or exact times above instead.</div>
+        </details>
         <audio id="m-srcAudio" controls></audio>
         <p class="step-eyebrow" style="margin-top:20px">Step 2 — Tune</p>
+        <label class="seg" id="m-dehumToggle" data-on="true" style="display:block;margin-bottom:10px"><input type="checkbox" id="m-dehum" checked style="position:absolute;opacity:0" />
+          <div class="seg-title"><span class="dot"></span>Remove 60 Hz hum (recommended for US tapes)</div>
+          <div class="seg-sub">Notches out electrical hum and its harmonics — done before denoising, the professional order.</div></label>
+        <label class="seg" id="m-gentleToggle" data-on="false" style="display:block;margin-bottom:10px"><input type="checkbox" id="m-gentle" style="position:absolute;opacity:0" />
+          <div class="seg-title"><span class="dot"></span>Gentle mode — two light passes</div>
+          <div class="seg-sub">Reduces noise in two soft passes instead of one hard hit. Use if a master sounds watery or robotic.</div></label>
         <div class="slider-row"><label>Noise reduction</label><input type="range" id="m-amount" min="0.05" max="0.5" step="0.01" value="0.21" /><output id="m-amountOut">0.21</output></div>
         <div class="slider-row"><label>Low-end cut (Hz)</label><input type="range" id="m-hp" min="20" max="120" step="5" value="60" /><output id="m-hpOut">60</output></div>
-        <p class="stage-sub">Tip: more reduction isn't better — too much adds a watery, robotic sound. Start around 0.2 and only raise it if hiss remains.</p>
+        <p class="stage-sub">Tip: more reduction isn't better — too much adds a watery sound. Start around 0.2, and reach for Gentle mode before cranking this up.</p>
         <button class="btn btn-primary" id="m-preview" disabled>Preview master</button>
         <div id="m-ab" style="display:none">
           <div class="ab">
@@ -358,6 +375,8 @@
             <option value="muffled">Muffled / low quality</option>
             <option value="damaged">Damaged</option>
             <option value="side-only">Side A or B only</option>
+            <option value="clicks">Heavy clicks/crackle — needs specialist tools</option>
+            <option value="clipping">Distorted/clipped — needs specialist tools</option>
             <option value="wrong">Wrong / not a sermon</option>
           </select></div>
         </div>
@@ -412,15 +431,15 @@
       <p class="body">In the Prepare tab, drop Side A in the first box and Side B in the second. Escriba stitches them into one continuous file. This replaces fiddling with GarageBand and gives you a clean, repeatable join every time.</p>
 
       <div class="help-h">Restoring a listening master</div>
-      <p class="body">This one is hands-on, and that's on purpose — there's no magic "fix it" button that produces a good master, because every tape's noise is different. The method professionals use, which Escriba follows:</p>
+      <p class="body">This one is hands-on, and that's on purpose — there's no magic "fix it" button that produces a good master, because every tape's noise is different. Escriba follows the order professionals use: it removes low rumble, then electrical hum, and denoises <em>last</em> (denoising last is the documented pro workflow — steady hiss is handled after the structural problems are gone).</p>
       <ol class="steps">
         <li>Drop the tape in the Master tab.</li>
-        <li><strong>Drag across a quiet moment</strong> on the waveform — a gap between sentences, or the silent lead-in. This teaches Escriba what <em>this tape's</em> noise sounds like, so it removes only that.</li>
-        <li>Click <strong>Preview master</strong>, then compare Before and After with the two players.</li>
-        <li>Tune if needed. More noise reduction is <em>not</em> better — too much makes voices sound watery. Start low.</li>
-        <li>When it sounds right, name it and <strong>Save master</strong>. You get both a high-quality WAV and a shareable MP3.</li>
+        <li><strong>Pick a quiet moment.</strong> Click "Use the first 3 seconds" for the silent lead-in (easiest, right most of the time), type exact times, or drag the waveform on a short tape. This teaches Escriba what <em>this tape's</em> noise sounds like.</li>
+        <li>Leave <strong>Remove 60 Hz hum</strong> on for US tapes. Click <strong>Preview master</strong> and compare Before/After.</li>
+        <li>If it sounds watery or robotic, turn on <strong>Gentle mode</strong> (two soft passes) rather than raising the noise-reduction slider — that's the professional trick for avoiding artifacts.</li>
+        <li>When it sounds right, name it and <strong>Save master</strong>. You get a high-quality WAV and a shareable MP3.</li>
       </ol>
-      <div class="callout">First time? Pick one tape and settle on settings you like before doing the whole archive — that's what audio archivists recommend, and it saves redoing work.</div>
+      <div class="callout">Some damage is beyond command-line tools. If a tape has heavy clicks/crackle or is badly distorted (clipped), flag it that way in the audit — those genuinely need specialist software like iZotope RX, and forcing them through here would make them worse. First time restoring? Settle your settings on one tape before doing the archive.</div>
 
       <div class="help-h">Where your work goes</div>
       <p class="body">Every transcript and master is saved automatically to a library on your computer (and listed in the Library tab). Set a Shared folder there to also copy everything into your team's Google Drive or Dropbox, so the whole team stays in sync.</p>
@@ -618,6 +637,15 @@ function fileChip(name,sub,onRemove){
     }catch(e2){err(e2.message);}
   }
   function err(m){$('m-err').textContent=m;$('m-err').classList.add('show');}
+  // one place that sets the selection, used by all three input methods
+  function setSelection(a,b){
+    selStart=Math.max(0,Math.min(a,b));selEnd=Math.min(duration,Math.max(a,b));
+    updateSel();
+  }
+  $('m-useLeadin').onclick=()=>{setSelection(0,Math.min(3,duration||3));
+    $('m-start').value=selStart.toFixed(1);$('m-end').value=selEnd.toFixed(1);};
+  $('m-useTimes').onclick=()=>{const a=parseFloat($('m-start').value)||0,b=parseFloat($('m-end').value)||0;
+    if(b<=a)return err('"To" must be later than "From".');setSelection(a,b);};
   // draw a real waveform by decoding the audio (HEURISTIC 1: see the audio)
   async function drawWaveFromUrl(url){
     try{const buf=await (await fetch(url)).arrayBuffer();
@@ -635,22 +663,27 @@ function fileChip(name,sub,onRemove){
   cv.addEventListener('pointermove',e=>{if(!dragging)return;const a=Math.min(dragX0,e.offsetX),b=Math.max(dragX0,e.offsetX);selStart=xToT(a);selEnd=xToT(b);updateSel();drawWaveAndSel();});
   cv.addEventListener('pointerup',()=>{dragging=false;updateSel();});
   function drawWaveAndSel(){if($('m-srcAudio').src)drawSel();}
-  function drawSel(){const W=cv.clientWidth,H=cv.height;
-    // redraw selection overlay without re-decoding: cheap rect
+  function drawSel(){const W=cv.clientWidth;if(!W||!duration)return;   // hidden/collapsed canvas
     cv.style.background='linear-gradient(to right,'+
       `transparent ${(selStart/duration)*100||0}%,#bb5a3622 ${(selStart/duration)*100||0}%,`+
       `#bb5a3622 ${(selEnd/duration)*100||0}%,transparent ${(selEnd/duration)*100||0}%)`;}
   function updateSel(){if(selStart==null){$('m-sel').textContent='no region selected';$('m-preview').disabled=true;return;}
     const a=Math.min(selStart,selEnd),b=Math.max(selStart,selEnd);
-    $('m-sel').textContent=`${a.toFixed(1)}s – ${b.toFixed(1)}s (${(b-a).toFixed(1)}s of noise)`;
+    $('m-sel').textContent=`Selected: ${a.toFixed(1)}s – ${b.toFixed(1)}s (${(b-a).toFixed(1)}s of noise)`;
+    $('m-start').value=a.toFixed(1);$('m-end').value=b.toFixed(1);
     $('m-preview').disabled=(b-a)<0.2;drawSel();}
   $('m-amount').oninput=e=>$('m-amountOut').textContent=(+e.target.value).toFixed(2);
   $('m-hp').oninput=e=>$('m-hpOut').textContent=e.target.value;
+  // checkbox "seg" toggles (HEURISTIC 4: behave like standard checkboxes)
+  function toggle(id,toggleId){$(toggleId).onclick=e=>{if(e.target.tagName==='INPUT')return;
+    const c=$(id);c.checked=!c.checked;$(toggleId).dataset.on=c.checked?'true':'false';};}
+  toggle('m-dehum','m-dehumToggle');toggle('m-gentle','m-gentleToggle');
+  function tuneFields(fd){fd.append('amount',$('m-amount').value);fd.append('highpass',$('m-hp').value);
+    fd.append('dehum',$('m-dehum').checked);fd.append('gentle',$('m-gentle').checked);}
   $('m-preview').onclick=async()=>{
     const a=Math.min(selStart,selEnd),b=Math.max(selStart,selEnd);
     $('m-preview').disabled=true;$('m-preview').textContent='Rendering…';$('m-err').classList.remove('show');
-    const fd=new FormData();fd.append('token',token);fd.append('start',a);fd.append('end',b);
-    fd.append('amount',$('m-amount').value);fd.append('highpass',$('m-hp').value);
+    const fd=new FormData();fd.append('token',token);fd.append('start',a);fd.append('end',b);tuneFields(fd);
     try{const r=await fetch('/api/master/preview',{method:'POST',body:fd});
       if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.detail||'Render failed.');}
       const d=await r.json();$('m-beforeAudio').src=$('m-srcAudio').src;$('m-afterAudio').src=d.url;$('m-ab').style.display='block';
@@ -660,8 +693,7 @@ function fileChip(name,sub,onRemove){
   $('m-save').onclick=async()=>{
     const a=Math.min(selStart,selEnd),b=Math.max(selStart,selEnd);
     $('m-save').disabled=true;$('m-save').textContent='Saving…';
-    const fd=new FormData();fd.append('token',token);fd.append('start',a);fd.append('end',b);
-    fd.append('amount',$('m-amount').value);fd.append('highpass',$('m-hp').value);fd.append('name',$('m-name').value||'master');
+    const fd=new FormData();fd.append('token',token);fd.append('start',a);fd.append('end',b);tuneFields(fd);fd.append('name',$('m-name').value||'master');
     try{const r=await fetch('/api/master/save',{method:'POST',body:fd});
       if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.detail||'Save failed.');}
       const rec=await r.json();
@@ -693,7 +725,7 @@ $('lib-folderSave').onclick=async()=>{
     $('lib-folderMsg').textContent=d.output_folder?'Saved. Files will also be copied there.':'Cleared.';
   }catch(err){$('lib-folderMsg').className='folder-msg err';$('lib-folderMsg').textContent=err.message;}
 };
-const PILL={good:'good',muffled:'mid','damaged':'bad','side-only':'mid',wrong:'bad'};
+const PILL={good:'good',muffled:'mid','damaged':'bad','side-only':'mid',clicks:'bad',clipping:'bad',wrong:'bad'};
 async function loadLibrary(){
   try{const h=(await (await fetch('/api/history')).json()).items||[];
     $('lib-history').innerHTML=h.length?h.map(it=>{

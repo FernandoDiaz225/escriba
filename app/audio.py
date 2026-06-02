@@ -91,25 +91,53 @@ def make_noise_profile(src: Path, start: float, end: float, prof: Path) -> Path:
 
 
 def restore_master(src: Path, prof: Path, dest: Path,
-                   amount: float = 0.21, highpass: int = 60) -> Path:
-    """Produce a listening master: gentle high-pass + profile-based noise
-    reduction + light normalization. Conservative on purpose.
+                   amount: float = 0.21, highpass: int = 60,
+                   dehum: bool = True, gentle: bool = False) -> Path:
+    """Produce a listening master following the professional order of operations.
 
-      >>> TUNE <<<  amount   (SoX noisered sensitivity; 0.2-0.3 is the sweet
-                              spot the practitioners report; higher = more
-                              aggressive = more artifacts)
-      >>> TUNE <<<  highpass (Hz to roll off below; 50-80 typical for voice)
+    Pros peel problems off in sequence, denoising LAST, because steady hiss is
+    handled after tonal/structural problems are gone (iZotope's documented
+    workflow). Our achievable chain on ffmpeg + SoX:
+
+        1) high-pass        -> remove sub-voice rumble
+        2) dehum (optional) -> notch out 60 Hz mains hum + harmonics (US tapes)
+        3) denoise          -> SoX profile-based reduction, applied LAST
+
+    'gentle' runs the denoise as TWO lighter passes instead of one hard pass —
+    the professional trick for avoiding the watery/robotic artifact that comes
+    from over-reducing in a single hit.
+
+      >>> TUNE <<<  amount   (0.2-0.3 is the practitioners' sweet spot)
+      >>> TUNE <<<  highpass (50-80 Hz typical for voice)
     """
     if not have("sox"):
         raise RuntimeError("SoX isn't installed. Run setup again, or: brew install sox")
     dest = dest.with_suffix(".wav")
-    # 1) high-pass with ffmpeg
-    hp = dest.with_suffix(".hp.wav")
-    _run(["ffmpeg", "-y", "-i", str(src), "-af", f"highpass=f={highpass}",
-          "-ar", "44100", "-ac", "1", "-loglevel", "error", str(hp)])
-    # 2) SoX profile-based noise reduction + gentle gain normalization
-    _run(["sox", str(hp), str(dest), "noisered", str(prof), str(amount), "gain", "-n", "-3"])
-    hp.unlink(missing_ok=True)
+
+    # 1) + 2) high-pass, then dehum via harmonic notch filters at 60 Hz.
+    #    anequalizer notches the mains fundamental and its first few harmonics.
+    af = f"highpass=f={highpass}"
+    if dehum:
+        notches = ",".join(
+            f"equalizer=f={60*k}:t=q:w=12:g=-22" for k in (1, 2, 3, 4)
+        )
+        af = f"{af},{notches}"
+    pre = dest.with_suffix(".pre.wav")
+    _run(["ffmpeg", "-y", "-i", str(src), "-af", af,
+          "-ar", "44100", "-ac", "1", "-loglevel", "error", str(pre)])
+
+    # 3) denoise LAST — one pass, or two gentler passes for fewer artifacts.
+    if gentle:
+        soft = max(0.05, amount * 0.6)
+        mid = dest.with_suffix(".p1.wav")
+        _run(["sox", str(pre), str(mid), "noisered", str(prof), str(soft)])
+        _run(["sox", str(mid), str(dest), "noisered", str(prof), str(soft),
+              "gain", "-n", "-3"])
+        mid.unlink(missing_ok=True)
+    else:
+        _run(["sox", str(pre), str(dest), "noisered", str(prof), str(amount),
+              "gain", "-n", "-3"])
+    pre.unlink(missing_ok=True)
     return dest
 
 

@@ -299,7 +299,7 @@ async def master_upload(file: UploadFile = File(...)):
             "sox": audio.have("sox")}
 
 
-def _render_master(token, start, end, amount, highpass):
+def _render_master(token, start, end, amount, highpass, dehum, gentle):
     src = WORKSPACE.get(token)
     if not src or not src.is_file():
         raise HTTPException(404, "That audio is no longer available.")
@@ -308,7 +308,8 @@ def _render_master(token, start, end, amount, highpass):
     try:
         audio.make_noise_profile(src, start, end, prof)
         out = audio.restore_master(src, prof, WORKSPACE_DIR / f"{uid}_master",
-                                   amount=amount, highpass=highpass)
+                                   amount=amount, highpass=highpass,
+                                   dehum=dehum, gentle=gentle)
         return out
     except RuntimeError as e:                 # SoX missing
         raise HTTPException(400, str(e))
@@ -320,21 +321,24 @@ def _render_master(token, start, end, amount, highpass):
 
 @app.post("/api/master/preview")
 def master_preview(token: str = Form(...), start: float = Form(...), end: float = Form(...),
-                   amount: float = Form(0.21), highpass: int = Form(60)):
-    out = _render_master(token, start, end, amount, highpass)
+                   amount: float = Form(0.21), highpass: int = Form(60),
+                   dehum: bool = Form(True), gentle: bool = Form(False)):
+    out = _render_master(token, start, end, amount, highpass, dehum, gentle)
     t = _stash(out)
     return {"url": f"/api/audio/{t}"}
 
 
 @app.post("/api/master/save")
 def master_save(token: str = Form(...), start: float = Form(...), end: float = Form(...),
-                amount: float = Form(0.21), highpass: int = Form(60), name: str = Form("master")):
-    out = _render_master(token, start, end, amount, highpass)
+                amount: float = Form(0.21), highpass: int = Form(60),
+                dehum: bool = Form(True), gentle: bool = Form(False), name: str = Form("master")):
+    out = _render_master(token, start, end, amount, highpass, dehum, gentle)
     mp3 = audio.to_mp3(out, out.with_suffix(".mp3"))
     cfg = telemetry.get_config()
     of = cfg.get("output_folder") or ""
     rec = storage.save_master(name, out, mp3,
-                              {"amount": amount, "highpass": highpass},
+                              {"amount": amount, "highpass": highpass,
+                               "dehum": dehum, "gentle": gentle},
                               Path(of) if of else None)
     return rec
 
